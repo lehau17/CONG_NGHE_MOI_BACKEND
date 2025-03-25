@@ -2,7 +2,7 @@ class BaseResponse {
     constructor(data = null, status = 200, mes = "OK") {
         this.data = data;
         this.status = status;
-        this.mes = mes;
+        this.message = mes;
         this.isSuccess = status >= 200 && status < 300;
     }
 
