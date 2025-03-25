@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    networks:
+      - zalo
+    depends_on:
+      - mongodb
+
+
+  mongodb:
+    image: mongo:latest-alpine
+    ports:
+      - "27017:27017"
+    networks:
+      - zalo
+    volumes:
+      - ./data_docker:/data/db
+      - mongo_docker:/data/db
+
+
+volumes:
+  mongo_docker:
+
+networks:
+  zalo:
+    driver: bridge
