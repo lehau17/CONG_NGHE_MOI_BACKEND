@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
-
+import envConfig from "../config/env.config.js";
 //Tạo token , kiểm tra cookiecookie
 const generateTokenAndSetCookie = (userId,res)=>{
     const payload = { userId }
-    const token = jwt.sign(payload,process.env.JWT_SECRET,{
+    const token = jwt.sign(payload, envConfig.JWT_SECRET ,{
         // Hạn token
-        expiresIn:'15d' 
+        expiresIn:'15d'
     });
     res.cookie("jwt",token,{
         maxAge: 15 * 24 * 60 * 60 * 1000,

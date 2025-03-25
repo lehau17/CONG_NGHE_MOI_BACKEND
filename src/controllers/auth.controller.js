@@ -2,10 +2,12 @@ import authService from "../services/auth.service.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
 export const signup = async (req, res) => {
-    new CreatedResponse(await authService.signUp(req.body), "Đăng Ký Thành Công").response(res)
+    new CreatedResponse(await authService.signUp(req.body), "Đăng Ký Thành Công")
+        .response(res)
 }
 export const login = async (req, res) => {
-    new SuccessResponse(await authService.login(req. body), "Đăng Nhập Thành Công").response(res)
+    new SuccessResponse(await authService.login(req.body, res), "Đăng Nhập Thành Công")
+        .response(res)
 }
 
 export const logout = async (req, res) => {

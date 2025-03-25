@@ -1,10 +1,11 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import { TYPE_TOKEN } from "../types/jwt.js";
 import { BadRequestError } from "../utils/errorHandler.js";
-import generateTokenAndSetCookie from "../utils/generateToken.js";
+import TokenFactory from "../utils/tokenFactory.js";
 
 class AuthService {
-    async login({userName, passWord }) {
+    async login({userName, passWord }, res) {
         const user = await User.findOne({ userName });
         if (!user) {
             throw new BadRequestError("User not exists")
@@ -13,9 +14,10 @@ class AuthService {
         if (!isPwd) {
             throw new BadRequestError("Invalid password")
         };
-        generateTokenAndSetCookie(user._id, res);
-        const { passWord: _, ...userResponse } = user
-        return userResponse
+        // generateTokenAndSetCookie(user._id, res);
+        const { passWord: _, ...userResponse } = user._doc
+        const accessToken = TokenFactory.createToken(TYPE_TOKEN.ACCESS_TOKEN, userResponse._id,  ["USER"])
+        return {user: userResponse, accessToken}
     }
 
 
