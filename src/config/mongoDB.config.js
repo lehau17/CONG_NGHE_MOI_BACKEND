@@ -1,15 +1,16 @@
 
 import mongoose from "mongoose";
+import envConfig from "./env.config.js";
 class MongoDbConnection {
 
     constructor() {
         this.mongoose = mongoose;
+        this.url =  envConfig.MONGO_URL
         // createConnection()
     }
 
     createConnection() {
         mongoose.connect(this.url, {
-            useNewUrlParser: true
         }).then(() => {
             console.log("Successfully connected to the database");
         }).catch(err => {

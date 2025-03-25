@@ -4,7 +4,7 @@ import { wrapperRequestHandle } from "../utils/wrapperRequestHandler.js";
 
 const router = express.Router();
 
-router.post("/login",wrapperRequestHandle(login));
-router.post("/logout",wrapperRequestHandle(logout));
-router.post("/signup",wrapperRequestHandle(signup));
+router.post("/login", wrapperRequestHandle(login));
+router.post("/logout", wrapperRequestHandle(logout));
+router.post("/signup", wrapperRequestHandle(signup));
 export default router;

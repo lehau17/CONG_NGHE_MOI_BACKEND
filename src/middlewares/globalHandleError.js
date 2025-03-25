@@ -1,4 +1,4 @@
-const globalErrorHandle = (err, req, res, next) => {
+const globalErrorHandler = (err, req, res, next) => {
     const { message = "Internal server error", status = 500, dataError = null } = err;
 
     // Logging
@@ -12,4 +12,4 @@ const globalErrorHandle = (err, req, res, next) => {
     });
 };
 
-export default globalErrorHandle;
+export default globalErrorHandler;
