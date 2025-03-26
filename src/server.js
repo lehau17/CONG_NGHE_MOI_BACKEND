@@ -1,3 +1,4 @@
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import mongoDbConnection from "./config/mongoDB.config.js";
@@ -10,9 +11,13 @@ const app = () => {
 
     const app = express();
     mongoDbConnection.createConnection()
+    app.use(
+        cors({
+          origin: "*"
+        })
+      );
 
-
-    app.use(express.json()) // phân tích các yêu cầu đến với dữ liệu JSON (từ req.body)
+    app.use(express.json())
 
     app.use("/api/auth",authRoutes);
     app.use("/api/messages", messageRoutes);

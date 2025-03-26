@@ -5,8 +5,8 @@ import { BadRequestError } from "../utils/errorHandler.js";
 import TokenFactory from "../utils/tokenFactory.js";
 
 class AuthService {
-    async login({userName, passWord }, res) {
-        const user = await User.findOne({ userName });
+    async login({phoneNumber, passWord }, res) {
+        const user = await User.findOne({ phoneNumber });
         if (!user) {
             throw new BadRequestError("User not exists")
         };
@@ -17,7 +17,7 @@ class AuthService {
         // generateTokenAndSetCookie(user._id, res);
         const { passWord: _, ...userResponse } = user._doc
         const accessToken = TokenFactory.createToken(TYPE_TOKEN.ACCESS_TOKEN, userResponse._id,  ["USER"])
-        return {user: userResponse, accessToken}
+        return {user: userResponse, access_token: accessToken}
     }
 
 

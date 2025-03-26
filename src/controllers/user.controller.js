@@ -16,6 +16,11 @@ class UserController {
         const { id } = req.params
         new SuccessResponse(await userService.findOneById(id), "Success").response(res)
     }
+
+    async updateMe(req, res) {
+        const { id } = req.params
+        new SuccessResponse(await userService.updateUser(id), "Success").response(res)
+    }
 }
 
 
