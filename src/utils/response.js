@@ -5,7 +5,6 @@ class BaseResponse {
         this.message = mes;
         this.isSuccess = status >= 200 && status < 300;
     }
-
     response(res) {
         res.status(this.status).json(this);
     }

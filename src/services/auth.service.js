@@ -17,7 +17,12 @@ class AuthService {
         // generateTokenAndSetCookie(user._id, res);
         const { passWord: _, ...userResponse } = user._doc
         const accessToken = TokenFactory.createToken(TYPE_TOKEN.ACCESS_TOKEN, userResponse._id,  ["USER"])
-        return {user: userResponse, access_token: accessToken}
+        res.cookie('jwt', accessToken, {
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 24 * 60 * 60 * 1000 
+        });
+        return {user: userResponse, token: accessToken}
     }
 
 

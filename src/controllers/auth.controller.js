@@ -1,4 +1,5 @@
 import authService from "../services/auth.service.js";
+import generateTokenAndSetCookie from "../utils/generateToken.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
 export const signup = async (req, res) => {
@@ -7,6 +8,8 @@ export const signup = async (req, res) => {
     ).response(res)
 }
 export const login = async (req, res) => {
+    // const user = await User.findOne({ userName });
+    // generateTokenAndSetCookie(user._id,res)
     new SuccessResponse(await authService
         .login(req.body, res), "Đăng Nhập Thành Công"
     ).response(res)
