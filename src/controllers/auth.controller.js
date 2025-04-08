@@ -54,3 +54,25 @@ export const verifyOtpOnly = async (req, res) => {
     ).response(res);
 };
 
+export const requestOtpSignup = async (req, res) => {
+    new SuccessResponse(
+      await authService.requestOtpForSignup(req.body),
+      "Gửi OTP đăng ký thành công"
+    ).response(res);
+  };
+  
+  export const verifyOtpSignup = async (req, res) => {
+    new CreatedResponse(
+      await authService.verifyOtpForSignup(req.body),
+      "Đăng ký thành công"
+    ).response(res);
+  };
+
+  export const changePassword = async (req, res) => {
+    new SuccessResponse(
+      await authService.changePassword(req.user.user_id, req.body),
+      "Đổi mật khẩu thành công"
+    ).response(res);
+  };
+  
+  

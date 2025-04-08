@@ -5,7 +5,7 @@ import { TYPE_TOKEN } from "../types/jwt.js";
 import { BadRequestError } from "../utils/errorHandler.js";
 import TokenFactory from "../utils/tokenFactory.js";
 import { generateOtp, verifyOtp } from "../utils/otpUtils.js";
-
+import tempSignupStore from "../utils/tempSignupStore.js";
 class AuthService {
   async login({ phoneNumber, passWord }, res) {
     const user = await User.findOne({ phoneNumber });
@@ -73,6 +73,63 @@ async verifyOtpOnly({ phoneNumber, otp }) {
   }
   return { verified: true };
 }
+
+async requestOtpForSignup({ fullName, userName, phoneNumber, email, gender, passWord }) {
+  // Kiểm tra trùng thông tin
+  const existingUsers = await User.find({
+    $or: [{ userName }, { email }, { phoneNumber }]
+  });
+  if (existingUsers.length > 0) {
+    const conflicts = [];
+    existingUsers.forEach(user => {
+      if (user.userName === userName) conflicts.push({ userName: "Username already exists" });
+      if (user.email === email) conflicts.push({ email: "Email already exists" });
+      if (user.phoneNumber === phoneNumber) conflicts.push({ phoneNumber: "Phone number already exists" });
+    });
+    throw new BadRequestError(conflicts);
+  }
+
+  // Gửi OTP & lưu info tạm
+  await generateOtp(phoneNumber);
+  tempSignupStore.set(phoneNumber, { fullName, userName, phoneNumber, email, gender, passWord });
+
+  return { message: "OTP đăng ký đã gửi, vui lòng xác nhận." };
+}
+
+async verifyOtpForSignup({ phoneNumber, otp }) {
+  const isValid = verifyOtp(phoneNumber, otp);
+  if (!isValid) throw new BadRequestError("OTP không hợp lệ");
+
+  const userData = tempSignupStore.get(phoneNumber);
+  if (!userData) throw new BadRequestError("Thông tin đăng ký không tồn tại hoặc đã hết hạn");
+
+  const hashedPassword = await bcrypt.hash(userData.passWord, 10);
+  const newUser = new User({ ...userData, passWord: hashedPassword });
+  await newUser.save();
+
+  tempSignupStore.delete(phoneNumber); // Xóa sau khi tạo thành công
+
+  return { message: "Đăng ký thành công", user: newUser };
+}
+
+async changePassword(userId, { oldPassword, newPassword, confirmPassword }) {
+  const user = await User.findById(userId);
+  if (!user) throw new BadRequestError("Người dùng không tồn tại");
+
+  const isMatch = await bcrypt.compare(oldPassword, user.passWord);
+  if (!isMatch) throw new BadRequestError("Mật khẩu cũ không chính xác");
+
+  if (newPassword !== confirmPassword) {
+    throw new BadRequestError("Mật khẩu mới và xác nhận mật khẩu không khớp");
+  }
+
+  user.passWord = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  return { message: "Mật khẩu đã được cập nhật" };
+}
+
+
 
 }
 
