@@ -3,8 +3,10 @@ import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { TYPE_TOKEN } from "../types/jwt.js";
 import { BadRequestError } from "../utils/errorHandler.js";
+import generatePassword from '../utils/generatepassword.js';
 import generateTokenAndSetCookie from "../utils/generateToken.js";
-import { generateOtp, verifyOtp } from "../utils/otpUtils.js";
+import { generateOtp, sendSMS, verifyOtp } from "../utils/otpUtils.js";
+import tempForfotPasswordStore from "../utils/tempForgotPasswordStore.js";
 import tempSignupStore from "../utils/tempSignupStore.js";
 import TokenFactory from "../utils/tokenFactory.js";
 class AuthService {
@@ -98,8 +100,24 @@ class AuthService {
         return { phoneNumber }
     }
 
+
+    async requestOtpForForgotPassword({ phoneNumber }) {
+        // Kiểm tra trùng thông tin
+        const existingUsers = await User.findOne({
+            phoneNumber
+        });
+        if (!existingUsers || existingUsers.status === "deactive") {
+            throw new BadRequestError("Số điện thoại không tồn tại hoặc đã bị khóa.");
+        }
+
+        // Gửi OTP & lưu info tạm
+        await generateOtp(phoneNumber);
+        tempForfotPasswordStore.set(phoneNumber, 1);
+
+        return { phoneNumber }
+    }
+
     async verifyOtpForSignup({ phoneNumber, otp }) {
-        console.log(phoneNumber, otp)
         const isValid = verifyOtp(phoneNumber, otp);
         if (!isValid) throw new BadRequestError("OTP không hợp lệ");
 
@@ -118,6 +136,28 @@ class AuthService {
             ["USER"]
         );
         return { user: newUser, access_token: accessToken };
+    }
+
+
+    async verifyOtpForFotgotPassword({ phoneNumber, otp }) {
+        const isValid = verifyOtp(phoneNumber, otp);
+        if (!isValid) throw new BadRequestError("OTP không hợp lệ");
+
+        const userData = tempForfotPasswordStore.get(phoneNumber);
+        if (!userData) throw new BadRequestError("Thông tin đăng ký không tồn tại hoặc đã hết hạn");
+        const newPassword = generatePassword();
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const foundUser = await User.findOneAndUpdate({ phoneNumber }, { passWord: hashedPassword }, { new: true });
+
+        tempSignupStore.delete(phoneNumber); // Xóa sau khi tạo thành công
+        // generateTokenAndSetCookie(newUser._id, res)
+        const accessToken = TokenFactory.createToken(
+            TYPE_TOKEN.ACCESS_TOKEN,
+            foundUser._id,
+            ["USER"]
+        );
+        await sendSMS(phoneNumber, `Mật khẩu mới của bạn là: ${newPassword}. `);
+        return { user: foundUser, access_token: accessToken };
     }
 
     async changePassword(userId, { oldPassword, newPassword, confirmPassword }) {
