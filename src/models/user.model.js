@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
     gender: {
         type: String,
         require: true,
-        enum: ["male", "female"]
+        enum: ["male", "female", "other"]
     },
     passWord: {
         type: String,
@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema({
     },
     dob: {
         type: Date,
-        require : false
+        require: false
     },
     avatar: {
         type: String,
@@ -44,8 +44,8 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["active", "deactive"],
-        default : "active"
+        enum: ["active", "deactive", "verify-register-otp"],
+        default: "active"
     },
     background: {
         type: String,
@@ -53,9 +53,9 @@ const userSchema = new mongoose.Schema({
     },
     is_twofa_enabled: {
         type: Boolean,
-        default : false
+        default: false
     },
-    twofa_method : {
+    twofa_method: {
         type: String,
         enum: ["OTP_EMAIL"],
         default: "OTP_EMAIL"
@@ -63,24 +63,24 @@ const userSchema = new mongoose.Schema({
     is_visible_dob: {
         type: String,
         enum: ["ONLY_DAY_MONTH", "FULL", "NO_VISIBLE"],
-        default : "FULL"
+        default: "FULL"
     },
     allow_message: {
         type: String,
         enum: ["EVERY_ONE", "FRIEND"],
-        default : "EVERY_ONE"
+        default: "EVERY_ONE"
     },
     allow_search_by_phone: {
         type: Boolean,
-        default : true
+        default: true
     },
     enable_fast_message: {
         type: Boolean,
-        default : true
+        default: true
     },
     list_fast_message: {
         type: Array,
-        default : []
+        default: []
     }
 },
     { timestamps: true }

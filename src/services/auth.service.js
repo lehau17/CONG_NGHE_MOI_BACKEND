@@ -3,131 +3,138 @@ import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import { TYPE_TOKEN } from "../types/jwt.js";
 import { BadRequestError } from "../utils/errorHandler.js";
-import TokenFactory from "../utils/tokenFactory.js";
+import generateTokenAndSetCookie from "../utils/generateToken.js";
 import { generateOtp, verifyOtp } from "../utils/otpUtils.js";
 import tempSignupStore from "../utils/tempSignupStore.js";
+import TokenFactory from "../utils/tokenFactory.js";
 class AuthService {
-  async login({ phoneNumber, passWord }, res) {
-    const user = await User.findOne({ phoneNumber });
-    if (!user) throw new BadRequestError("User not exists");
+    async login({ phoneNumber, passWord }, res) {
+        const user = await User.findOne({ phoneNumber });
+        if (!user) throw new BadRequestError("User not exists");
 
-    const isPwd = await bcrypt.compare(passWord, user?.passWord || "");
-    if (!isPwd) throw new BadRequestError("Invalid password");
+        const isPwd = await bcrypt.compare(passWord, user?.passWord || "");
+        if (!isPwd) throw new BadRequestError("Invalid password");
 
-    const { passWord: _, ...userResponse } = user._doc;
-    const accessToken = TokenFactory.createToken(
-      TYPE_TOKEN.ACCESS_TOKEN,
-      userResponse._id,
-      ["USER"]
-    );
+        const { passWord: _, ...userResponse } = user._doc;
+        generateTokenAndSetCookie(user._id, res) // cookie
+        const accessToken = TokenFactory.createToken(
+            TYPE_TOKEN.ACCESS_TOKEN,
+            userResponse._id,
+            ["USER"]
+        );
 
-    return { user: userResponse, access_token: accessToken };
-  }
-
-  async signUp({ fullName, userName, phoneNumber, email, gender, passWord }) {
-    const existingUsers = await User.find({
-      $or: [{ userName }, { email }, { phoneNumber }]
-    });
-
-    if (existingUsers.length > 0) {
-      const conflicts = [];
-      existingUsers.forEach(user => {
-        if (user.userName === userName) conflicts.push({ userName: "Username already exists" });
-        if (user.email === email) conflicts.push({ email: "Email already exists" });
-        if (user.phoneNumber === phoneNumber) conflicts.push({ phoneNumber: "Phone number already exists" });
-      });
-      throw new BadRequestError(conflicts);
+        return { user: userResponse, access_token: accessToken };
     }
 
-    const hashedPassword = await bcrypt.hash(passWord, 10);
-    const newUser = new User({ fullName, userName, phoneNumber, email, gender, passWord: hashedPassword });
-    await newUser.save();
-    return newUser;
-  }
+    async signUp({ fullName, userName, phoneNumber, email, gender, passWord }) {
+        const existingUsers = await User.find({
+            $or: [{ userName }, { email }, { phoneNumber }]
+        });
 
-  async sendOtp({ phoneNumber }) {
-    const user = await User.findOne({ phoneNumber });
-    if (!user) throw new BadRequestError("Số điện thoại không tồn tại");
+        if (existingUsers.length > 0) {
+            const conflicts = [];
+            existingUsers.forEach(user => {
+                if (user.userName === userName) conflicts.push({ userName: "Username already exists" });
+                if (user.email === email) conflicts.push({ email: "Email already exists" });
+                if (user.phoneNumber === phoneNumber) conflicts.push({ phoneNumber: "Phone number already exists" });
+            });
+            throw new BadRequestError("Đăng ký thông tin thất bại", conflicts);
+        }
 
-    await generateOtp(phoneNumber);
-    return { message: "Mã OTP đã được gửi qua SMS." };
-  }
+        const hashedPassword = await bcrypt.hash(passWord, 10);
+        const newUser = new User({ fullName, userName, phoneNumber, email, gender, passWord: hashedPassword });
+        await newUser.save();
+        return newUser;
+    }
 
-  async verifyOtpAndResetPassword({ phoneNumber, otp, newPassword }) {
-    const isValid = verifyOtp(phoneNumber, otp);
-    if (!isValid) throw new BadRequestError("OTP không hợp lệ");
+    async sendOtp({ phoneNumber }) {
+        const user = await User.findOne({ phoneNumber });
+        if (!user) throw new BadRequestError("Số điện thoại không tồn tại");
 
-    const user = await User.findOne({ phoneNumber });
-    if (!user) throw new BadRequestError("Số điện thoại không tồn tại");
+        await generateOtp(phoneNumber);
+        return { message: "Mã OTP đã được gửi qua SMS." };
+    }
 
-    user.passWord = await bcrypt.hash(newPassword, 10);
-    await user.save();
-    return { message: "Đổi mật khẩu thành công" };
-  }
-  
-  // Thêm vào trong class AuthService trong auth.service.js
-async verifyOtpOnly({ phoneNumber, otp }) {
-  const isValid = verifyOtp(phoneNumber, otp);
-  if (!isValid) {
-    throw new BadRequestError("OTP không hợp lệ");
-  }
-  return { verified: true };
-}
+    async verifyOtpAndResetPassword({ phoneNumber, otp, newPassword }) {
+        const isValid = verifyOtp(phoneNumber, otp);
+        if (!isValid) throw new BadRequestError("OTP không hợp lệ");
 
-async requestOtpForSignup({ fullName, userName, phoneNumber, email, gender, passWord }) {
-  // Kiểm tra trùng thông tin
-  const existingUsers = await User.find({
-    $or: [{ userName }, { email }, { phoneNumber }]
-  });
-  if (existingUsers.length > 0) {
-    const conflicts = [];
-    existingUsers.forEach(user => {
-      if (user.userName === userName) conflicts.push({ userName: "Username already exists" });
-      if (user.email === email) conflicts.push({ email: "Email already exists" });
-      if (user.phoneNumber === phoneNumber) conflicts.push({ phoneNumber: "Phone number already exists" });
-    });
-    throw new BadRequestError(conflicts);
-  }
+        const user = await User.findOne({ phoneNumber });
+        if (!user) throw new BadRequestError("Số điện thoại không tồn tại");
 
-  // Gửi OTP & lưu info tạm
-  await generateOtp(phoneNumber);
-  tempSignupStore.set(phoneNumber, { fullName, userName, phoneNumber, email, gender, passWord });
+        user.passWord = await bcrypt.hash(newPassword, 10);
+        await user.save();
+        return { message: "Đổi mật khẩu thành công" };
+    }
 
-  return { message: "OTP đăng ký đã gửi, vui lòng xác nhận." };
-}
+    // Thêm vào trong class AuthService trong auth.service.js
+    async verifyOtpOnly({ phoneNumber, otp }) {
+        const isValid = verifyOtp(phoneNumber, otp);
+        if (!isValid) {
+            throw new BadRequestError("OTP không hợp lệ");
+        }
+        return { verified: true };
+    }
 
-async verifyOtpForSignup({ phoneNumber, otp }) {
-  const isValid = verifyOtp(phoneNumber, otp);
-  if (!isValid) throw new BadRequestError("OTP không hợp lệ");
+    async requestOtpForSignup({ fullName, userName, phoneNumber, email, gender, passWord }) {
+        // Kiểm tra trùng thông tin
+        const existingUsers = await User.find({
+            $or: [{ userName }, { email }, { phoneNumber }]
+        });
+        if (existingUsers.length > 0) {
+            const conflicts = [];
+            existingUsers.forEach(user => {
+                if (user.userName === userName) conflicts.push({ userName: "Username already exists" });
+                if (user.email === email) conflicts.push({ email: "Email already exists" });
+                if (user.phoneNumber === phoneNumber) conflicts.push({ phoneNumber: "Phone number already exists" });
+            });
+            throw new BadRequestError("Thông tin đăng ký không hợp lệ.", conflicts);
+        }
 
-  const userData = tempSignupStore.get(phoneNumber);
-  if (!userData) throw new BadRequestError("Thông tin đăng ký không tồn tại hoặc đã hết hạn");
+        // Gửi OTP & lưu info tạm
+        await generateOtp(phoneNumber);
+        tempSignupStore.set(phoneNumber, { fullName, userName, phoneNumber, email, gender, passWord });
 
-  const hashedPassword = await bcrypt.hash(userData.passWord, 10);
-  const newUser = new User({ ...userData, passWord: hashedPassword });
-  await newUser.save();
+        return { phoneNumber }
+    }
 
-  tempSignupStore.delete(phoneNumber); // Xóa sau khi tạo thành công
+    async verifyOtpForSignup({ phoneNumber, otp }) {
+        const isValid = verifyOtp(phoneNumber, otp);
+        if (!isValid) throw new BadRequestError("OTP không hợp lệ");
 
-  return { message: "Đăng ký thành công", user: newUser };
-}
+        const userData = tempSignupStore.get(phoneNumber);
+        if (!userData) throw new BadRequestError("Thông tin đăng ký không tồn tại hoặc đã hết hạn");
 
-async changePassword(userId, { oldPassword, newPassword, confirmPassword }) {
-  const user = await User.findById(userId);
-  if (!user) throw new BadRequestError("Người dùng không tồn tại");
+        const hashedPassword = await bcrypt.hash(userData.passWord, 10);
+        const newUser = new User({ ...userData, passWord: hashedPassword });
+        await newUser.save();
 
-  const isMatch = await bcrypt.compare(oldPassword, user.passWord);
-  if (!isMatch) throw new BadRequestError("Mật khẩu cũ không chính xác");
+        tempSignupStore.delete(phoneNumber); // Xóa sau khi tạo thành công
+        generateTokenAndSetCookie(newUser._id, res) // cookie
+        const accessToken = TokenFactory.createToken(
+            TYPE_TOKEN.ACCESS_TOKEN,
+            userResponse._id,
+            ["USER"]
+        );
+        return { user: userResponse, access_token: accessToken };
+    }
 
-  if (newPassword !== confirmPassword) {
-    throw new BadRequestError("Mật khẩu mới và xác nhận mật khẩu không khớp");
-  }
+    async changePassword(userId, { oldPassword, newPassword, confirmPassword }) {
+        const user = await User.findById(userId);
+        if (!user) throw new BadRequestError("Người dùng không tồn tại");
 
-  user.passWord = await bcrypt.hash(newPassword, 10);
-  await user.save();
+        const isMatch = bcrypt.compareSync(oldPassword, user.passWord);
+        if (!isMatch) throw new BadRequestError("Mật khẩu cũ không chính xác");
 
-  return { message: "Mật khẩu đã được cập nhật" };
-}
+        if (newPassword !== confirmPassword) {
+            throw new BadRequestError("Mật khẩu mới và xác nhận mật khẩu không khớp");
+        }
+
+        user.passWord = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        return { message: "Mật khẩu đã được cập nhật" };
+    }
 
 
 
