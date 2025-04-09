@@ -99,6 +99,7 @@ class AuthService {
     }
 
     async verifyOtpForSignup({ phoneNumber, otp }) {
+        console.log(phoneNumber, otp)
         const isValid = verifyOtp(phoneNumber, otp);
         if (!isValid) throw new BadRequestError("OTP không hợp lệ");
 
@@ -110,13 +111,13 @@ class AuthService {
         await newUser.save();
 
         tempSignupStore.delete(phoneNumber); // Xóa sau khi tạo thành công
-        generateTokenAndSetCookie(newUser._id, res) // cookie
+        // generateTokenAndSetCookie(newUser._id, res)
         const accessToken = TokenFactory.createToken(
             TYPE_TOKEN.ACCESS_TOKEN,
-            userResponse._id,
+            newUser._id,
             ["USER"]
         );
-        return { user: userResponse, access_token: accessToken };
+        return { user: newUser, access_token: accessToken };
     }
 
     async changePassword(userId, { oldPassword, newPassword, confirmPassword }) {
