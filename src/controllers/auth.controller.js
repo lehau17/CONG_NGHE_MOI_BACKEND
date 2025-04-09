@@ -8,8 +8,6 @@ export const signup = async (req, res) => {
     ).response(res)
 }
 export const login = async (req, res) => {
-    // const user = await User.findOne({ userName });
-    // generateTokenAndSetCookie(user._id,res)
     new SuccessResponse(await authService
         .login(req.body, res), "Đăng Nhập Thành Công"
     ).response(res)
