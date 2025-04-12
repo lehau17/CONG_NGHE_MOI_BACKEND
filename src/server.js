@@ -8,11 +8,13 @@ import friendRequestRoutes from "./routes/friendRequest.route.js";
 import messageRoutes from "./routes/message.routes.js";
 import uploadRouter from "./routes/upload.route.js";
 import userRouter from "./routes/user.routes.js";
-import io from "./socketIO.js";
 dotenv.config();
 const app = () => {
 
     const app = express();
+
+
+
     mongoDbConnection.createConnection()
     app.use(
         cors({
@@ -21,13 +23,6 @@ const app = () => {
     );
 
 
-    io.on("connection", (socket) => {
-        console.log("🟢 New client connected", socket.id);
-
-        socket.on("disconnect", () => {
-            console.log("🔌 Client disconnected", socket.id);
-        });
-    });
 
     app.use(express.json())
 

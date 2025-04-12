@@ -1,22 +1,17 @@
-//Hội thoại
 import mongoose from "mongoose";
 
-const conversationSchema = mongoose.Schema({
-    members:[
-        {
-            type:mongoose.Schema.ObjectId,
-            ref:"User",
-        }
+const conversationSchema = new mongoose.Schema({
+    participants: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true }
     ],
-    messages:[
-        {
-            type:mongoose.Schema.ObjectId,
-            ref:"Message",
-            default:[]
-        }
-    ]
-},{Timestamp:true});
+    lastMessage: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "message",
+        default: null
+    }
+}, { timestamps: true });
 
-const Conversation = mongoose.model("Conversation",conversationSchema);
+conversationSchema.index({ participants: 1 }, { unique: true });
 
+const Conversation = mongoose.model("conversation", conversationSchema);
 export default Conversation;

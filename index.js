@@ -1,9 +1,7 @@
-import dotenv from "dotenv";
-import app from "./src/server.js";
+import appSocket from "./src/socketIO.js";
 
-dotenv.config();
+appSocket.app
 
-
-app().listen(process.env.PORT || 5000, () => {
+appSocket.app.listen(process.env.PORT || 5000, () => {
     console.log(`Server is running on port ${process.env.PORT || 5000}`);
 });

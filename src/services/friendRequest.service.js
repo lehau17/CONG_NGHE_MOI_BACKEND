@@ -1,18 +1,22 @@
 import FriendRequest from "../models/friendRequest.model.js";
-import { connectedUsers, io } from "../socketIO.js";
+import appSocket from "../socketIO.js";
 import { BadRequestError } from "../utils/errorHandler.js";
+
+
 
 export const sendFriendRequest = async (from, to) => {
     const exists = await FriendRequest.findOne({ from, to });
     if (exists) throw new BadRequestError("Friend request already exists");
     const request = await FriendRequest.create({ from, to });
 
-    io.emit(`friend-request:${to}`, {
-        message: "Bạn có lời mời kết bạn mới",
-        from: from,
-        requestId: request._id
-    });
-
+    const socketIds = appSocket.connectedUsers.get(to.toString()) || [];
+    socketIds.forEach(socketId => {
+        appSocket.io.to(socketId).emit("friend-request", {
+            message: "Bạn có lời mời kết bạn mới",
+            from: from,
+            requestId: request._id
+        });
+    })
     return request;
 };
 

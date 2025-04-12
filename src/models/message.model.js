@@ -1,24 +1,45 @@
-//Tin nhắn
 import mongoose from "mongoose";
 
-const messageSchema = mongoose.Schema({
-    senderId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        require:true
+const messageSchema = new mongoose.Schema({
+    conversationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "conversation",
+        required: true
     },
-    receiverId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        require:true
+    sender: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: true
     },
-    message:{
+    receiver: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: true
+    },
+    type: {
         type: String,
-        require: true
+        enum: ["text", "emoji", "image", "video", "file", "audio"],
+        default: "text"
+    },
+    content: {
+        type: String, // nội dung text, url file, hoặc mã emoji
+        required: true
+    },
+    fileMeta: {
+        name: String,
+        size: Number,
+        mimeType: String,
+        duration: Number // nếu là audio/video
+    },
+    isRead: {
+        type: Boolean,
+        default: false
+    },
+    readAt: {
+        type: Date,
+        default: null
     }
+}, { timestamps: true });
 
-},{Timestamp:true});
-
-const Message = mongoose.model("Message",messageSchema);
-
-export default Message; 
+const Message = mongoose.model("message", messageSchema);
+export default Message;

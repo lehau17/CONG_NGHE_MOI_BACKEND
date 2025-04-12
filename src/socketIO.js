@@ -1,38 +1,142 @@
-import http from "http";
+import { createServer } from 'http';
 import { Server } from "socket.io";
-const server = http.createServer(app);
+import app from "./server.js";
 
-export const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+// export const io = new Server(server, {
+//     cors: {
+//         origin: "*",
+//         methods: ["GET", "POST"]
+//     }
+// });
+
+
+
+class SocketIO {
+    constructor() {
+        this.connectedUsers = new Map();
+        this.app = app()
+        const server = createServer(app);
+        this.io = new Server(server, {
+            cors: {
+                origin: "*",
+                methods: ["GET", "POST"]
+            }
+        });
+        this.io.on("connection", (socket) => {
+            console.log("🟢 New socket connected:", socket.id);
+
+            socket.on("register", (userId) => {
+                this.register(userId, socket.id);
+                console.log(`✅ User ${userId} registered on socket ${socket.id}`);
+            });
+
+            socket.on("disconnect", () => {
+                this.unregister(socket.id);
+                console.log("🔌 Socket disconnected:", socket.id);
+            });
+        });
     }
-});
 
-export const connectedUsers = new Map();
-
-io.on("connection", (socket) => {
-    console.log("🟢 New socket connected:", socket.id);
-
-    socket.on("register", (userId) => {
-        const sockets = connectedUsers.get(userId) || [];
-        if (!sockets.includes(socket.id)) {
-            sockets.push(socket.id);
-            connectedUsers.set(userId, sockets);
+    register(userId, socketId) {
+        const sockets = this.connectedUsers.get(userId) || [];
+        if (!sockets.includes(socketId)) {
+            sockets.push(socketId);
+            this.connectedUsers.set(userId, sockets);
         }
-        console.log(`✅ User ${userId} registered on socket ${socket.id}`);
-    });
-
-    socket.on("disconnect", () => {
-        for (const [userId, socketList] of connectedUsers.entries()) {
-            const updatedList = socketList.filter(id => id !== socket.id);
+    }
+    unregister(socketId) {
+        for (const [userId, socketList] of this.connectedUsers.entries()) {
+            const updatedList = socketList.filter(id => id !== socketId);
             if (updatedList.length > 0) {
-                connectedUsers.set(userId, updatedList);
+                this.connectedUsers.set(userId, updatedList);
             } else {
-                connectedUsers.delete(userId);
+                this.connectedUsers.delete(userId);
             }
         }
-        console.log("🔌 Socket disconnected:", socket.id);
-    });
-});
+    }
+    getSocketIds(userId) {
+        return this.connectedUsers.get(userId) || [];
+    }
+    emitToUser(userId, event, data) {
+        const socketIds = this.getSocketIds(userId);
+        socketIds.forEach(socketId => {
+            io.to(socketId).emit(event, data);
+        });
+    }
+    emitToAll(event, data) {
+        io.emit(event, data);
+    }
+    emitToRoom(room, event, data) {
+        io.to(room).emit(event, data);
+    }
+    joinRoom(socketId, room) {
+        io.to(socketId).join(room);
+    }
+    leaveRoom(socketId, room) {
+        io.to(socketId).leave(room);
+    }
+    getAllSockets() {
+        return Array.from(this.connectedUsers.values()).flat();
+    }
+    getAllUsers() {
+        return Array.from(this.connectedUsers.keys());
+    }
+    getAllRooms() {
+        return Array.from(io.sockets.adapter.rooms.keys());
+    }
+    getAllSocketIds() {
+        return Array.from(io.sockets.sockets.keys());
+    }
+    getSocketCount() {
+        return io.engine.clientsCount;
+    }
+    getSocketById(socketId) {
+        return io.sockets.sockets.get(socketId);
+    }
+    getSocketByUserId(userId) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.sockets.sockets.get(socketId));
+    }
+    getSocketByRoom(room) {
+        return io.sockets.adapter.rooms.get(room);
+    }
+    getSocketByNamespace(namespace) {
+        return io.of(namespace).sockets;
+    }
+    getSocketByNamespaceAndRoom(namespace, room) {
+        return io.of(namespace).adapter.rooms.get(room);
+    }
+    getSocketByNamespaceAndUserId(namespace, userId) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).sockets.get(socketId));
+    }
+    getSocketByNamespaceAndSocketId(namespace, socketId) {
+        return io.of(namespace).sockets.get(socketId);
+    }
+    getSocketByNamespaceAndRoomAndUserId(namespace, room, userId) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).adapter.rooms.get(room));
+    }
+    getSocketByNamespaceAndRoomAndSocketId(namespace, room, socketId) {
+        return io.of(namespace).adapter.rooms.get(room).sockets.get(socketId);
+    }
+    getSocketByNamespaceAndUserIdAndRoom(namespace, userId, room) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).adapter.rooms.get(room));
+    }
+    getSocketByNamespaceAndUserIdAndSocketId(namespace, userId, socketId) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).sockets.get(socketId));
+    }
+    getSocketByNamespaceAndRoomAndUserIdAndSocketId(namespace, room, userId, socketId) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).adapter.rooms.get(room).sockets.get(socketId));
+    }
+    getSocketByNamespaceAndRoomAndUserIdAndSocketIdAndEvent(namespace, room, userId, socketId, event) {
+        const socketIds = this.getSocketIds(userId);
+        return socketIds.map(socketId => io.of(namespace).adapter.rooms.get(room).sockets.get(socketId).emit(event));
+    }
+}
 
+const appSocket = new SocketIO();
+export default appSocket;
