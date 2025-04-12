@@ -95,6 +95,9 @@ class AuthService {
 
         // Gửi OTP & lưu info tạm
         await generateOtp(phoneNumber);
+        if (tempSignupStore.has(phoneNumber)) {
+            throw new BadRequestError("OTP đã được gửi đến số điện thoại này trong vòng 5 phút qua.");
+        }
         tempSignupStore.set(phoneNumber, { fullName, userName, phoneNumber, email, gender, passWord });
 
         return { phoneNumber }
@@ -112,6 +115,9 @@ class AuthService {
 
         // Gửi OTP & lưu info tạm
         await generateOtp(phoneNumber);
+        if (tempForfotPasswordStore.has(phoneNumber)) {
+            throw new BadRequestError("OTP đã được gửi đến số điện thoại này trong vòng 5 phút qua.");
+        }
         tempForfotPasswordStore.set(phoneNumber, 1);
 
         return { phoneNumber }
@@ -145,7 +151,11 @@ class AuthService {
 
         const userData = tempForfotPasswordStore.get(phoneNumber);
         if (!userData) throw new BadRequestError("Thông tin đăng ký không tồn tại hoặc đã hết hạn");
+
+
+
         const newPassword = generatePassword();
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         const foundUser = await User.findOneAndUpdate({ phoneNumber }, { passWord: hashedPassword }, { new: true });
 

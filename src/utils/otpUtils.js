@@ -34,6 +34,7 @@ export const sendSMS = async (phoneNumber, mes) => {
 
     const from = process.env.VONAGE_BRAND || "Vonage";
     const to = "84" + phoneNumber.slice(1);
+    console.log(mes)
 
     try {
         const result = await vonage.sms.send({ to, from, text: mes });
