@@ -13,16 +13,12 @@ const app = () => {
 
     const app = express();
 
-
-
     mongoDbConnection.createConnection()
     app.use(
         cors({
             origin: "*"
         })
     );
-
-
 
     app.use(express.json())
 

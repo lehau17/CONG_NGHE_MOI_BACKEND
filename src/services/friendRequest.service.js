@@ -31,16 +31,13 @@ export const acceptFriendRequest = async (requestId) => {
 
 
     // Emit event to the sender of the request
-    const socketIds = connectedUsers.get(request.from._id.toString()) || [];
+    const socketIds = appSocket.connectedUsers.get(request.from._id.toString()) || [];
     socketIds.forEach(socketId => {
-        io.to(socketId).emit("friend-request-accepted", {
+        appSocket.io.to(socketId).emit("friend-request-accepted", {
             message: `${request.to.fullName} đã chấp nhận lời mời kết bạn`,
             user: request.to,
         });
     });
-
-
-
     return request;
 };
 

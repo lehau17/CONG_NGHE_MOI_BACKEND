@@ -1,13 +1,7 @@
 import { createServer } from 'http';
 import { Server } from "socket.io";
 import app from "./server.js";
-
-// export const io = new Server(server, {
-//     cors: {
-//         origin: "*",
-//         methods: ["GET", "POST"]
-//     }
-// });
+import { UnauthorizedError } from './utils/errorHandler.js';
 
 
 
@@ -15,13 +9,26 @@ class SocketIO {
     constructor() {
         this.connectedUsers = new Map();
         this.app = app()
-        const server = createServer(app);
-        this.io = new Server(server, {
+        this.server = createServer(app);
+        this.io = new Server(this.server, {
             cors: {
                 origin: "*",
                 methods: ["GET", "POST"]
             }
         });
+        this.io.use((socket, next) => {
+            const token = socket.handshake.auth?.token;
+            if (!token) return next(new UnauthorizedError("Authentication required"));
+
+            try {
+                const payload = jwt.verify(token, process.env.JWT_SECRET);
+                socket.user = payload;
+                next();
+            } catch (err) {
+                return next(new UnauthorizedError("Invalid token"));
+            }
+        });
+
         this.io.on("connection", (socket) => {
             console.log("🟢 New socket connected:", socket.id);
 
