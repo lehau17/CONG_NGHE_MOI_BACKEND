@@ -21,6 +21,7 @@ class AuthenticationMiddleware {
                 }
 
                 req.user = decoded;
+                console.log(decoded)
                 next(); // ✅ Chỉ gọi next() khi xác thực thành công
             });
         } catch (error) {

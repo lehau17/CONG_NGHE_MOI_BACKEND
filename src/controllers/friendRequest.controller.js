@@ -2,7 +2,7 @@ import * as friendService from "../services/friendRequest.service.js";
 import { SuccessResponse } from "../utils/response.js";
 
 export const sendRequest = async (req, res, next) => {
-    const result = await friendService.sendFriendRequest(req.user._id, req.body.to);
+    const result = await friendService.sendFriendRequest(req.user.user_id, req.body.to);
     new SuccessResponse(result, "Đã gửi lời mời kết bạn").response(res);
 
 };

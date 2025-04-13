@@ -11,11 +11,6 @@ const messageSchema = new mongoose.Schema({
         ref: "user",
         required: true
     },
-    receiver: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
-        required: true
-    },
     type: {
         type: String,
         enum: ["text", "emoji", "image", "video", "file", "audio"],

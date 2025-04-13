@@ -7,18 +7,23 @@ import { BadRequestError } from "../utils/errorHandler.js";
 export const sendFriendRequest = async (from, to) => {
     const exists = await FriendRequest.findOne({ from, to });
     if (exists) throw new BadRequestError("Friend request already exists");
+
     const request = await FriendRequest.create({ from, to });
+
+    const populatedRequest = await request.populate("from", "fullName avatar _id");
 
     const socketIds = appSocket.connectedUsers.get(to.toString()) || [];
     socketIds.forEach(socketId => {
         appSocket.io.to(socketId).emit("friend-request", {
             message: "Bạn có lời mời kết bạn mới",
-            from: from,
+            from: populatedRequest.from,
             requestId: request._id
         });
-    })
+    });
+
     return request;
 };
+
 
 export const acceptFriendRequest = async (requestId) => {
     const request = await FriendRequest.findByIdAndUpdate(

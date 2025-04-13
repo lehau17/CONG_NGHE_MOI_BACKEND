@@ -9,6 +9,15 @@ class UserService {
     }
 
 
+    async findUserByPhone(phoneNumber) {
+        const foundUser = await User.findOne({
+            phoneNumber,
+            allow_search_by_phone: true
+        }).select("-passWord"); // loại bỏ password nếu cần
+
+        return foundUser;
+    }
+
     async findOneById(id) {
         const foundUser = await userRepository.findById(id)
         if (!foundUser || foundUser.status !== "active") {

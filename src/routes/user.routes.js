@@ -5,6 +5,7 @@ import { wrapperRequestHandle } from "../utils/wrapperRequestHandler.js"
 
 
 const userRouter = express.Router()
+userRouter.get("/search", authenticationMiddleware.run, wrapperRequestHandle(userController.searhUser))
 
 userRouter.patch("/me", authenticationMiddleware.run, wrapperRequestHandle(userController.updateMe))
 userRouter.patch("/:id", authenticationMiddleware.run, wrapperRequestHandle(userController.update))
