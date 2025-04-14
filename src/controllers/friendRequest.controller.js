@@ -25,6 +25,7 @@ export const rejectRequest = async (req, res, next) => {
 };
 
 export const getFriendRequest = async (req, res, next) => {
+    console.log("check data", req.query.status)
     const result = await friendService.getFriendRequests(req.user.user_id, req.query.status);
     new SuccessResponse(result, "Lấy danh sách bạn bè").response(res);
 }
