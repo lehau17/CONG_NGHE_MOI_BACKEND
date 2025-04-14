@@ -5,6 +5,7 @@ import { wrapperRequestHandle } from "../utils/wrapperRequestHandler.js";
 
 const router = express.Router();
 
+router.get("/", authenticationMiddleware.run, wrapperRequestHandle(controller.getFriendRequest));
 router.post("/send", authenticationMiddleware.run, wrapperRequestHandle(controller.sendRequest));
 router.get("/pending", authenticationMiddleware.run, wrapperRequestHandle(controller.getRequests));
 router.put("/accept/:id", authenticationMiddleware.run, wrapperRequestHandle(controller.acceptRequest));

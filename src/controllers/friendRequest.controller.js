@@ -23,3 +23,8 @@ export const rejectRequest = async (req, res, next) => {
     const result = await friendService.rejectFriendRequest(req.params.id);
     new SuccessResponse(result, "Đã từ chối lời mời kết bạn").response(res);
 };
+
+export const getFriendRequest = async (req, res, next) => {
+    const result = await friendService.getFriendRequests(req.user.user_id, req.query.status);
+    new SuccessResponse(result, "Lấy danh sách bạn bè").response(res);
+}
