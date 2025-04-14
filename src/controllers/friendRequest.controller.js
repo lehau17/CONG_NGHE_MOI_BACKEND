@@ -8,9 +8,9 @@ export const sendRequest = async (req, res, next) => {
 };
 
 export const getRequests = async (req, res, next) => {
-    const requests = await friendService.getFriendRequests(req.user._id);
+    console.log("User ID:", req.user.user_id);  // Log để kiểm tra giá trị userId
+    const requests = await friendService.getFriendRequests(req.user.user_id);
     new SuccessResponse(requests, "Danh sách lời mời kết bạn đang chờ").response(res);
-
 };
 
 export const acceptRequest = async (req, res, next) => {
