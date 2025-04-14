@@ -1,14 +1,14 @@
 import authService from "../services/auth.service.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
-export const signup = async (req, res) => {
+export const signup = async (req, res, next) => {
     new CreatedResponse(
         await authService.signUp(req.body),
         "Đăng ký thành công"
     ).response(res);
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
     new SuccessResponse(
         await authService.login(req.body, res),
         "Đăng nhập thành công"
@@ -25,14 +25,14 @@ export const logout = async (req, res) => {
     }
 };
 
-export const sendOtp = async (req, res) => {
+export const sendOtp = async (req, res, next) => {
     new SuccessResponse(
         await authService.sendOtp(req.body),
         "Gửi OTP thành công"
     ).response(res);
 };
 
-export const resetPasswordWithOtp = async (req, res) => {
+export const resetPasswordWithOtp = async (req, res, next) => {
     new SuccessResponse(
         await authService.verifyOtpAndResetPassword(req.body),
         "Đặt lại mật khẩu thành công"
@@ -40,7 +40,7 @@ export const resetPasswordWithOtp = async (req, res) => {
 };
 
 // ✅ Thêm mới xác thực OTP không đổi mật khẩu
-export const verifyOtpOnly = async (req, res) => {
+export const verifyOtpOnly = async (req, res, next) => {
     const { phoneNumber, otp } = req.body;
     const isValid = await authService.verifyOtpOnly({ phoneNumber, otp });
 
@@ -54,7 +54,7 @@ export const verifyOtpOnly = async (req, res) => {
     ).response(res);
 };
 
-export const requestOtpSignup = async (req, res) => {
+export const requestOtpSignup = async (req, res, next) => {
     new SuccessResponse(
         await authService.requestOtpForSignup(req.body),
         "Gửi OTP đăng ký thành công"
@@ -62,27 +62,27 @@ export const requestOtpSignup = async (req, res) => {
 };
 
 
-export const requestOtpFotgotPassword = async (req, res) => {
+export const requestOtpFotgotPassword = async (req, res, next) => {
     new SuccessResponse(
         await authService.requestOtpForForgotPassword(req.body),
         "Gửi OTP quên mật khẩu thành công"
     ).response(res);
 };
 
-export const verifyOtpFotgotpassword = async (req, res) => {
+export const verifyOtpFotgotpassword = async (req, res, next) => {
     new CreatedResponse(
         await authService.verifyOtpForFotgotPassword(req.body),
         "Đặt lại mật khẩu thành công, vui lòng kiểm tra email hoặc số điện thoại của bạn"
     ).response(res);
 };
-export const verifyOtpSignup = async (req, res) => {
+export const verifyOtpSignup = async (req, res, next) => {
     new CreatedResponse(
         await authService.verifyOtpForSignup(req.body),
         "Đăng ký thành công"
     ).response(res);
 };
 
-export const changePassword = async (req, res) => {
+export const changePassword = async (req, res, next) => {
     new SuccessResponse(
         await authService.changePassword(req.user.user_id, req.body),
         "Đổi mật khẩu thành công"
