@@ -54,7 +54,7 @@ export const getConversationById = async (conversationId) => {
 
 export const getOrCreateFullConversation = async (userId, targetUserId) => {
     const participants = [userId, targetUserId].sort();
-
+    console.log(userId, targetUserId)
     let conversation = await Conversation.findOne({
         participants: { $all: participants, $size: 2 }
     });

@@ -4,11 +4,19 @@ import authenticationMiddleware from "../middlewares/authentication.middleware.j
 
 const conversationRouter = express.Router();
 
-conversationRouter.use(authenticationMiddleware.run)
+// conversationRouter.use(authenticationMiddleware.run)
 
-conversationRouter.post("/", conversationController.createConversation);
-conversationRouter.get("/me", conversationController.getMyConversations);
-conversationRouter.get("/:id", conversationController.getConversationDetail);
-conversationRouter.post("/detail", conversationController.getOrCreateConversationDetail);
+conversationRouter.post("/",
+    authenticationMiddleware.run,
+    conversationController.createConversation);
+conversationRouter.get("/me",
+    authenticationMiddleware.run,
+    conversationController.getMyConversations);
+conversationRouter.get("/:id",
+    authenticationMiddleware.run,
+    conversationController.getConversationDetail);
+conversationRouter.post("/detail",
+    authenticationMiddleware.run,
+    conversationController.getOrCreateConversationDetail);
 
 export default conversationRouter;
