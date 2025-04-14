@@ -51,5 +51,10 @@ export const rejectFriendRequest = async (requestId) => {
 };
 
 export const getFriendRequests = async (userId) => {
-    return await FriendRequest.find({ to: userId, status: "pending" }).populate("from", "fullName avatar");
+    console.log("Fetching friend requests for user:", userId);  // Log để kiểm tra userId
+    const requests = await FriendRequest.find({ to: userId, status: "pending" }).populate("from", "fullName avatar");
+    console.log("Friend requests found:", requests);  // Log kết quả truy vấn
+    return requests;
 };
+
+
