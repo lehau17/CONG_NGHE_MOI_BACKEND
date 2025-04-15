@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Realtime</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input {
+      padding: 6px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    button {
+      padding: 6px 12px;
+      margin-top: 5px;
+    }
+    ul {
+      list-style: none;
+      padding: 10px;
+      border: 1px solid #ccc;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 10px;
+      background: #f9f9f9;
+    }
+    li {
+      max-width: 70%;
+      margin: 6px 0;
+      padding: 8px 12px;
+      border-radius: 16px;
+      clear: both;
+      word-wrap: break-word;
+      display: inline-block;
+    }
+    .me {
+      background-color: #dcf8c6;
+      float: right;
+      text-align: right;
+    }
+    .other {
+      background-color: #fff;
+      float: left;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h2>💬 Realtime Chat Test</h2>
+  
+  <input id="token" placeholder="Nhập JWT Token" />
+  <input id="conversationId" placeholder="Nhập Conversation ID" />
+  <button onclick="connectSocket()">🔌 Kết nối</button>
+
+  <ul id="messages"></ul>
+
+  <input id="message" placeholder="Nhập tin nhắn..." disabled onkeydown="if(event.key === 'Enter') sendMessage()" />
+  <button onclick="sendMessage()" disabled id="sendBtn">📤 Gửi</button>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    let socket;
+    let senderId;
+
+    function listenForMessages() {
+      socket.on("new-message", (msg) => {
+        console.log("🚨 Received message:", msg);
+        displayMessage(msg);
+      });
+    }
+
+    function connectSocket() {
+      const token = document.getElementById("token").value.trim();
+      const conversationId = document.getElementById("conversationId").value.trim();
+
+      if (!token || !conversationId) {
+        alert("Vui lòng nhập đầy đủ Token và Conversation ID!");
+        return;
+      }
+
+      if (socket) socket.disconnect();
+
+      socket = io("http://localhost:5000", {
+        auth: { token }
+      });
+
+      socket.on("connect", () => {
+        console.log("✅ Socket connected");
+
+        const decoded = parseJwt(token);
+        senderId = decoded?.user_id || decoded?.id || token;
+
+        document.getElementById("message").disabled = false;
+        document.getElementById("sendBtn").disabled = false;
+        document.getElementById("message").focus();
+
+        listenForMessages();
+        socket.emit("join-room", conversationId); // 👉 Join vào phòng cụ thể
+        console.log("📥 Đã join phòng:", conversationId);
+        loadMessages(conversationId);
+      });
+
+      socket.on("disconnect", () => {
+        console.log("⚠️ Socket disconnected");
+        document.getElementById("message").disabled = true;
+        document.getElementById("sendBtn").disabled = true;
+      });
+
+      socket.on("reconnect", (attempt) => {
+        console.log(`⚡ Reconnected (Attempt: ${attempt})`);
+        listenForMessages();
+      });
+    }
+
+    function loadMessages(conversationId) {
+      const token = document.getElementById("token").value.trim();
+
+      fetch(`http://localhost:5000/api/message/${conversationId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(messages => {
+        console.log("📦 Old messages:", messages);
+        messages.data.forEach(displayMessage);
+      })
+      .catch(err => console.error('❌ Lỗi tải tin nhắn:', err));
+    }
+
+    function sendMessage() {
+      const token = document.getElementById("token").value;
+      const conversationId = document.getElementById("conversationId").value;
+      const content = document.getElementById("message").value.trim();
+      const type = 'text';
+
+      if (!content) return;
+
+      
+
+      fetch('http://localhost:5000/api/message/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          conversationId,
+          sender: senderId,
+          content,
+          type
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("✅ Message sent:", data);
+        document.getElementById("message").value = "";
+      })
+      .catch(err => console.error('❌ Lỗi gửi tin nhắn:', err));
+    }
+
+    function parseJwt(token) {
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function displayMessage(msg) {
+  const li = document.createElement("li");
+
+  // Normalize senderId từ msg
+  const msgSenderId = (msg.sender?._id || msg.sender?.id || msg.sender || "").toString();
+
+  // So sánh với senderId của người dùng hiện tại
+  const isMe = msgSenderId === senderId.toString();
+
+  li.className = isMe ? "me" : "other";
+  li.textContent = msg.content;
+
+  document.getElementById("messages").appendChild(li);
+
+  const ul = document.getElementById("messages");
+  ul.scrollTop = ul.scrollHeight;
+}
+
+
+  </script>
+</body>
+</html>

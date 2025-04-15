@@ -38,6 +38,18 @@ class SocketIO {
                 console.log(`✅ User ${userId} registered on socket ${socket.id}`);
             });
 
+            socket.on("join-room", (roomId) => {
+                if (roomId) {
+                    socket.join(roomId);
+                    console.log(`👥 Socket ${socket.id} joined room ${roomId}`);
+                } else {
+                    console.warn(`⚠️ Missing roomId for socket ${socket.id}`);
+                }
+            });
+            
+            
+            
+              
             socket.on("disconnect", () => {
                 this.unregister(socket.id);
                 console.log("🔌 Socket disconnected:", socket.id);
