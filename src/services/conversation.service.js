@@ -1,18 +1,28 @@
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import mongoose from "mongoose";
 
 export const createConversation = async (userId, targetUserId) => {
-    const participants = [userId, targetUserId].sort(); // để tránh tạo trùng
+    // Sắp xếp ID để đảm bảo thứ tự cố định cho index unique
+    const sortedIds = [userId, targetUserId].sort();
 
-    let conversation = await Conversation.findOne({
-        participants: { $all: participants, $size: 2 }
+    // Format participants đúng với schema
+    const participants = sortedIds.map(id => ({
+        user: new mongoose.Types.ObjectId(id),
+        deletedAt: null
+    }));
+
+    // Tìm cuộc trò chuyện đã tồn tại
+    const conversation = await Conversation.findOne({
+        "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) },
+        "participants": { $size: 2 }
     });
 
-    if (!conversation) {
-        conversation = await Conversation.create({ participants });
-    }
+    if (conversation) return conversation;
 
-    return conversation;
+    // Tạo mới nếu chưa có
+    const newConversation = await Conversation.create({ participants });
+    return newConversation;
 };
 
 

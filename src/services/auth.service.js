@@ -11,7 +11,6 @@ import tempSignupStore from "../utils/tempSignupStore.js";
 import TokenFactory from "../utils/tokenFactory.js";
 class AuthService {
     async login({ phoneNumber, passWord }, res) {
-        console.log(phoneNumber)
         const user = await User.findOne({ phoneNumber });
         if (!user) throw new BadRequestError("User not exists");
 

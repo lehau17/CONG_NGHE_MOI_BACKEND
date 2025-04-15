@@ -36,10 +36,10 @@ export const createMessage = async (body, me_id) => {
 
     if (populatedConversation?.participants) {
         populatedConversation.participants.forEach((participant) => {
-            const isMe = participant._id.toString() === me_id.toString();
+            const isMe = participant.user._id.toString() === me_id.toString();
             const sender = populatedConversation?.lastMessage?.sender;
 
-            appSocket.emitToUser(participant._id.toString(), "update-chat-list", {
+            appSocket.emitToUser(participant.user._id.toString(), "update-chat-list", {
                 ...populatedConversation,
                 lastMessage: {
                     ...populatedConversation.lastMessage,
@@ -57,8 +57,29 @@ export const createMessage = async (body, me_id) => {
 };
 
 
-export const getMessagesByConversation = async (conversationId) => {
-    return await Message.find({ conversationId })
+export const getMessagesByConversation = async (conversationId, currentUserId) => {
+    // 1. Lấy conversation + thời điểm user hiện tại xoá
+    const conversation = await Conversation.findById(conversationId)
+        .select("participants");
+
+    if (!conversation) throw new Error("Conversation not found");
+
+    const participant = conversation.participants.find(p =>
+        p.user.toString() === currentUserId.toString()
+    );
+
+    const deletedAt = participant?.deletedAt || null;
+
+    // 2. Truy vấn tin nhắn sau thời điểm deletedAt (nếu có)
+    const filter = {
+        conversationId,
+        ...(deletedAt ? { createdAt: { $gt: deletedAt } } : {})
+    };
+
+    const messages = await Message.find(filter)
         .sort({ createdAt: 1 })
         .populate("sender", "_id fullName avatar");
+
+    return messages;
 };
+
