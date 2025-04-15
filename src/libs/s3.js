@@ -28,3 +28,8 @@ export const uploadFileToS3 = async (file, folder = "") => {
         url: `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
     };
 };
+
+
+export const uploadMultipleFilesToS3 = async (files, folder = "") => {
+    return await Promise.all(files.map(file => uploadFileToS3(file, folder)));
+};

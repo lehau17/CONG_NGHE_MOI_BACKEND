@@ -17,15 +17,17 @@ const messageSchema = new mongoose.Schema({
         default: "text"
     },
     content: {
-        type: String, // nội dung text, url file, hoặc mã emoji
-        required: true
+        type: String,
     },
-    fileMeta: {
-        name: String,
-        size: Number,
-        mimeType: String,
-        duration: Number // nếu là audio/video
-    },
+    fileMeta: [
+        {
+            name: String,
+            size: Number,
+            mimeType: String,
+            duration: Number,// nếu là audio/video
+            url: String
+        }
+    ],
     isRead: {
         type: Boolean,
         default: false

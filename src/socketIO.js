@@ -36,8 +36,6 @@ class SocketIO {
 
             socket.on("register", async (userId) => {
                 this.register(userId, socket.id);
-                console.log(`✅ User ${userId} registered on socket ${socket.id}`);
-                // get room and automatics add room by conversation ID
                 getMyConversations(socket.user.user_id).then(e => {
                     e.map(e => {
                         socket.join(e._id.toString())
@@ -69,6 +67,7 @@ class SocketIO {
         const sockets = this.connectedUsers.get(userId) || [];
         if (!sockets.includes(socketId)) {
             sockets.push(socketId);
+            console.log("cjeck data tại registrer", userId, socketId)
             this.connectedUsers.set(userId, sockets);
         }
     }
