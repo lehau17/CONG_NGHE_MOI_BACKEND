@@ -9,5 +9,9 @@ messageRouter.use(authenticationMiddleware.run);
 
 messageRouter.post("/send", wrapperRequestHandle(messageController.sendMessage));
 messageRouter.get("/:conversationId", wrapperRequestHandle(messageController.getConversationMessages));
+messageRouter.patch("/hide/:conversationId", wrapperRequestHandle(messageController.hideConversationForMe));
+messageRouter.put("/recall/:messageId", wrapperRequestHandle(messageController.recallMessage));
+messageRouter.post("/forward", wrapperRequestHandle(messageController.forwardMessage));
+
 
 export default messageRouter;

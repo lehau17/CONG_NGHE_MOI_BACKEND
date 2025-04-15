@@ -6,30 +6,15 @@ export const sendMessage = async (req, res, next) => {
     const senderId = req.user.user_id;
 
     // 1. Tạo tin nhắn trong DB
-    // const message = await messageService.createMessage({
-    //     ...req.body,
-    //     sender: senderId,
-    // }, req.user.user_id);
+    const message = await messageService.createMessage({
+        ...req.body,
+        sender: senderId,
+    }, req.user.user_id);
 
-    // // 2. Gửi realtime theo 2 cách:
-    // //  a) Emit đến tất cả socket đã join room (room = conversationId)
-    // appSocket.emitToRoom(req.body.conversationId, "new-message", message);
-    // new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
-    try {
-        const message = await messageService.createMessage({
-            ...req.body,
-            sender: senderId,
-        }, req.user.user_id);
-    
-        appSocket.emitToRoom(req.body.conversationId, "new-message", message);
-        new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
-    } catch (error) {
-        console.error("Error creating message:", error);
-        return res.status(500).json({
-            message: "Có lỗi xảy ra khi gửi tin nhắn.",
-            error: error.message || error
-        });
-    }
+    // 2. Gửi realtime theo 2 cách:
+    //  a) Emit đến tất cả socket đã join room (room = conversationId)
+    appSocket.emitToRoom(req.body.conversationId, "new-message", message);
+    new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
 
 };
 
@@ -40,3 +25,36 @@ export const getConversationMessages = async (req, res, next) => {
     const messages = await messageService.getMessagesByConversation(conversationId, currentUserId);
     new SuccessResponse(messages, "Danh sách tin nhắn").response(res);
 };
+
+export const hideConversationForMe = async (req, res, next) => {
+    const userId = req.user.user_id;
+    const { conversationId } = req.params;
+
+    const result = await messageService.markConversationDeletedForUser(conversationId, userId);
+    new SuccessResponse(result, "Đã ẩn đoạn chat thành công").response(res);
+};
+
+export const recallMessage = async (req, res, next) => {
+    const { messageId } = req.params;
+    const userId = req.user.user_id;
+
+    const updatedMessage = await messageService.recallMessage(messageId, userId);
+
+    // Gửi realtime để 2 bên cập nhật tin nhắn đã bị thu hồi
+    appSocket.emitToRoom(updatedMessage.conversationId.toString(), "message-recalled", updatedMessage);
+
+    new SuccessResponse(updatedMessage, "Thu hồi tin nhắn thành công").response(res);
+};
+
+
+export const forwardMessage = async (req, res, next) => {
+    const { messageId, targetConversationId } = req.body;
+
+    try {
+        const forwardedMessage = await messageService.forwardMessage(messageId, targetConversationId);
+        new CreatedResponse(forwardedMessage, "Tin nhắn đã được chuyển tiếp thành công").response(res);
+    } catch (error) {
+        next(error);
+    }
+};
+  
