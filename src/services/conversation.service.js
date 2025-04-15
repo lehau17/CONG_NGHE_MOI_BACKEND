@@ -69,7 +69,8 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
         .populate("lastMessage");
 
     const messages = await Message.find({ conversationId: conversation._id })
-        .sort({ createdAt: 1 }); // lấy theo thứ tự tăng dần thời gian
+        .sort({ createdAt: 1 })
+        .populate("sender", "fullName avatar _id"); // lấy theo thứ tự tăng dần thời gian
 
     return { ...fullConversation.toObject(), messages };
 };

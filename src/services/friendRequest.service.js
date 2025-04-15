@@ -51,7 +51,14 @@ export const rejectFriendRequest = async (requestId) => {
 };
 
 export const getFriendRequests = async (userId, status = "pending") => {
-    const requests = await FriendRequest.find({ to: userId, status }).populate("from", "fullName avatar");
+    const optionFind = {
+        to: userId,
+        ...(status !== "all" && { status }) // chỉ thêm `status` nếu khác "all"
+    };
+
+    const requests = await FriendRequest.find(optionFind)
+        .populate("from", "fullName avatar");
+
     return requests;
 };
 

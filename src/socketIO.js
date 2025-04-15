@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { Server } from "socket.io";
 import envConfig from "./config/env.config.js";
 import app from "./server.js";
+import { getMyConversations } from "./services/conversation.service.js";
 import { UnauthorizedError } from './utils/errorHandler.js';
 dotenv.config()
 
@@ -33,9 +34,16 @@ class SocketIO {
         this.io.on("connection", (socket) => {
             console.log("🟢 New socket connected:", socket.id);
 
-            socket.on("register", (userId) => {
+            socket.on("register", async (userId) => {
                 this.register(userId, socket.id);
                 console.log(`✅ User ${userId} registered on socket ${socket.id}`);
+                // get room and automatics add room by conversation ID
+                getMyConversations(socket.user.user_id).then(e => {
+                    e.map(e => {
+                        socket.join(e._id.toString())
+                        console.log("Socket join rooom>>>", e._id.toString())
+                    })
+                })
             });
 
             socket.on("join-room", (roomId) => {
@@ -46,10 +54,10 @@ class SocketIO {
                     console.warn(`⚠️ Missing roomId for socket ${socket.id}`);
                 }
             });
-            
-            
-            
-              
+
+
+
+
             socket.on("disconnect", () => {
                 this.unregister(socket.id);
                 console.log("🔌 Socket disconnected:", socket.id);

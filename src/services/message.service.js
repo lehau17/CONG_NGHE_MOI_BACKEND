@@ -21,5 +21,5 @@ export const createMessage = async ({ conversationId, sender, content, type = "t
 export const getMessagesByConversation = async (conversationId) => {
     return await Message.find({ conversationId })
         .sort({ createdAt: 1 })
-        .populate("sender", "fullName avatar");
+        .populate("sender", "_id fullName avatar");
 };

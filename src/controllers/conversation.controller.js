@@ -1,6 +1,6 @@
 import * as conversationService from "../services/conversation.service.js";
 import { BadRequestError } from "../utils/errorHandler.js";
-import { SuccessResponse, CreatedResponse} from "../utils/response.js";
+import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
 export const createConversation = async (req, res, next) => {
     const { targetUserId } = req.body;

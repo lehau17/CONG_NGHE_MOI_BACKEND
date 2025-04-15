@@ -60,8 +60,8 @@ class UserController {
         if (!phone) {
             throw new BadRequestError("Thiếu số điện thoại")
         }
-
-        const user = await userService.findUserByPhone(phone);
+        console.log("before>>>>>>")
+        const user = await userService.findUserByPhone(phone, req.user.user_id);
 
         return new SuccessResponse(user, "Tìm thấy người dùng").response(res);
     }

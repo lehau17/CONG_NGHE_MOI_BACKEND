@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import globalErrorHandler from "./middlewares/globalHandleError.js";
 import authRoutes from "./routes/auth.routes.js";
+import contactRouter from "./routes/contact.routes.js";
 import conversationRouter from "./routes/conversation.route.js";
 import friendRequestRoutes from "./routes/friendRequest.route.js";
 import messageRouter from './routes/message.routes.js';
@@ -28,6 +29,7 @@ const app = () => {
     app.use("/api/user", userRouter)
     app.use("/api/upload", uploadRouter);
     app.use("/api/friend-request", friendRequestRoutes);
+    app.use("/api/contact", contactRouter)
 
     // handling
     app.use(globalErrorHandler);

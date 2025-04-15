@@ -79,7 +79,7 @@ const userSchema = new mongoose.Schema({
     },
     list_fast_message: {
         type: Array,
-        default: []
+        default: [{ "label": "/hello", "value": "Xin chao Ban. Ngay Moi Nhu Nao Roi" }]
     }
 },
     { timestamps: true }

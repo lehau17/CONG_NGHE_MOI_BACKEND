@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import userRepository from "../repo/user.repo.js";
 import { BadRequestError } from "../utils/errorHandler.js";
@@ -9,14 +10,16 @@ class UserService {
     }
 
 
-    async findUserByPhone(phoneNumber) {
+    async findUserByPhone(phoneNumber, userId) {
         const foundUser = await User.findOne({
+            _id: { $ne: new mongoose.Types.ObjectId(userId) },
             phoneNumber,
             allow_search_by_phone: true
-        }).select("-passWord"); // loại bỏ password nếu cần
+        }).select("-password"); // Loại bỏ field password khi trả về
 
         return foundUser;
     }
+
 
     async findOneById(id) {
         const foundUser = await userRepository.findById(id)
