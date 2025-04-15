@@ -28,3 +28,21 @@ export const getFriendRequest = async (req, res, next) => {
     const result = await friendService.getFriendRequests(req.user.user_id, req.query.status || "all");
     new SuccessResponse(result, "Lấy danh sách bạn bè").response(res);
 }
+
+export const getFriends = async (req, res, next) => {
+    const friends = await friendService.getFriendsList(req.user.user_id);
+    new SuccessResponse(friends, "Danh sách bạn bè").response(res);
+};
+
+export const getSentFriendRequests = async (req, res, next) => {
+    try {
+        // Lấy danh sách lời mời kết bạn đã gửi với trạng thái "pending"
+        const result = await friendService.getSentFriendRequests(req.user.user_id);
+
+        // Trả về phản hồi với danh sách lời mời kết bạn đã gửi
+        new SuccessResponse(result, "Danh sách lời mời kết bạn đã gửi").response(res);
+    } catch (error) {
+        next(error);
+    }
+};
+

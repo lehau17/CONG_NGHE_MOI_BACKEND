@@ -10,5 +10,7 @@ router.post("/send", authenticationMiddleware.run, wrapperRequestHandle(controll
 router.get("/pending", authenticationMiddleware.run, wrapperRequestHandle(controller.getRequests));
 router.put("/accept/:id", authenticationMiddleware.run, wrapperRequestHandle(controller.acceptRequest));
 router.put("/reject/:id", authenticationMiddleware.run, wrapperRequestHandle(controller.rejectRequest));
+router.get("/friends", authenticationMiddleware.run, wrapperRequestHandle(controller.getFriends));
+router.get("/sent", authenticationMiddleware.run, wrapperRequestHandle(controller.getSentFriendRequests));
 
 export default router;

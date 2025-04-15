@@ -62,4 +62,38 @@ export const getFriendRequests = async (userId, status = "pending") => {
     return requests;
 };
 
+export const getFriendsList = async (userId) => {
+    // Lấy các yêu cầu kết bạn với trạng thái là 'accepted'
+    const requests = await FriendRequest.find({
+        $or: [
+            { from: userId, status: "accepted" },
+            { to: userId, status: "accepted" },
+        ]
+    })
+    .populate("from", "fullName avatar")  // Lấy thông tin người gửi
+    .populate("to", "fullName avatar");   // Lấy thông tin người nhận
+
+    // Lọc ra danh sách bạn bè từ các yêu cầu kết bạn đã chấp nhận
+    const friends = requests.map(request => {
+        if (request.from._id.toString() === userId.toString()) {
+            return request.to;
+        }
+        return request.from;
+    });
+
+    return friends;
+};
+
+export const getSentFriendRequests = async (from, status = "pending") => {
+    const optionFind = {
+        from, // lấy các lời mời mà người dùng là người gửi
+        status // chỉ lấy những lời mời có trạng thái là "pending"
+    };
+
+    // Truy vấn và trả về các lời mời kết bạn đã gửi với trạng thái pending
+    const requests = await FriendRequest.find(optionFind)
+        .populate("to", "fullName avatar");
+
+    return requests;
+};
 
