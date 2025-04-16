@@ -48,11 +48,12 @@ class SocketIO {
             socket.on("join-room", (roomId) => {
                 if (roomId) {
                     socket.join(roomId);
-                    console.log(`👥 Socket ${socket.id} joined room ${roomId}`);
+                    console.log(`✅ Socket ${socket.id} joined room ${roomId}`);
                 } else {
-                    console.warn(`⚠️ Missing roomId for socket ${socket.id}`);
+                    console.warn(`⚠️ Không có roomId để join`);
                 }
             });
+
 
 
 
