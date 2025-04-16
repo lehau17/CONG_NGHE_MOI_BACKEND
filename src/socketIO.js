@@ -45,6 +45,13 @@ class SocketIO {
                 })
             });
 
+            socket.on("call-user", ({ to, from, conversationId, token }) => {
+                const targetSocketIds = this.connectedUsers.get(to) || []; // hoặc Map.get(to)
+                targetSocketIds.forEach(id => {
+                    this.io.to(id).emit("incoming-call", { from, conversationId, token });
+                });
+            });
+
             socket.on("join-room", (roomId) => {
                 if (roomId) {
                     socket.join(roomId);
