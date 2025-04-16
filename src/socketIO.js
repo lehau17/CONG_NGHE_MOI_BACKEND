@@ -82,6 +82,17 @@ class SocketIO {
             }
         }
     }
+
+    joinUserToRoom(userId, room) {
+        const socketIds = this.getSocketIds(userId);
+        socketIds.forEach(socketId => {
+            const socket = this.getSocketById(socketId);
+            if (socket) {
+                socket.join(room);
+                console.log(`✅ Socket ${socket.id} (user ${userId}) joined room ${room}`);
+            }
+        });
+    }
     getSocketIds(userId) {
         return this.connectedUsers.get(userId) || [];
     }

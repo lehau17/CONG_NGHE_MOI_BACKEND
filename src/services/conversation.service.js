@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import appSocket from "../socketIO.js";
 
 export const createConversation = async (userId, targetUserId) => {
     const sortedIds = [userId, targetUserId].sort();
@@ -89,6 +90,8 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
             participants,
             participantIds: sortedIds
         });
+        appSocket.joinUserToRoom(userId, conversation._id)
+        appSocket.joinUserToRoom(targetUserId, conversation._id)
     }
 
     const fullConversation = await Conversation.findById(conversation._id)
