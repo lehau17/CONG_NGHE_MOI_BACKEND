@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 import appSocket from "../socketIO.js";
+import { BadRequestError } from "../utils/errorHandler.js";
 
 export const createMessage = async (body, me_id) => {
     console.log(body)
@@ -18,9 +19,9 @@ export const createMessage = async (body, me_id) => {
     await conversation.save();
 
     const [populatedMessage, populatedConversation] = await Promise.all(
-        [message.populate("sender", "_id fullName phoneNumber avatar"),
+        [(await message.populate("sender", "_id fullName phoneNumber avatar")).populate("replyTo"),
         Conversation.findById(body.conversationId)
-            .populate("participants", "_id fullName avatar")
+            .populate("participants.user", "_id fullName avatar")
             .populate({
                 path: "lastMessage",
                 populate: {
@@ -41,6 +42,7 @@ export const createMessage = async (body, me_id) => {
 
             appSocket.emitToUser(participant.user._id.toString(), "update-chat-list", {
                 ...populatedConversation,
+                participants: populatedConversation.participants.map(e => { return { deletedAt: e.deletedAt, ...e.user } }),
                 lastMessage: {
                     ...populatedConversation.lastMessage,
                     sender: {
@@ -78,7 +80,8 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
 
     const messages = await Message.find(filter)
         .sort({ createdAt: 1 })
-        .populate("sender", "_id fullName avatar");
+        .populate("sender", "_id fullName avatar")
+        .populate("replyTo");
 
     return messages;
 };
@@ -102,10 +105,9 @@ export const recallMessage = async (messageId, userId) => {
 
     // Chỉ người gửi mới được thu hồi
     if (message.sender.toString() !== userId.toString()) {
-        throw new Error("Bạn không có quyền thu hồi tin nhắn này");
+        throw new BadRequestError("Bạn không có quyền thu hồi tin nhắn này");
     }
 
-    // Cập nhật nội dung tin nhắn
     message.content = "Tin nhắn đã bị thu hồi";
     message.type = "text";
     message.fileMeta = [];
@@ -139,4 +141,4 @@ export const forwardMessage = async (messageId, targetConversationId) => {
     // Trả về tin nhắn đã chuyển tiếp
     return forwardedMessage;
 };
-  
+

@@ -1,34 +1,36 @@
+import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
-import mongoose from "mongoose";
 
 export const createConversation = async (userId, targetUserId) => {
-    // Sắp xếp ID để đảm bảo thứ tự cố định cho index unique
     const sortedIds = [userId, targetUserId].sort();
 
-    // Format participants đúng với schema
     const participants = sortedIds.map(id => ({
         user: new mongoose.Types.ObjectId(id),
         deletedAt: null
     }));
 
-    // Tìm cuộc trò chuyện đã tồn tại
     const conversation = await Conversation.findOne({
-        "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) },
-        "participants": { $size: 2 }
+        $and: [
+            { "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) } },
+            { participants: { $size: 2 } }
+        ]
     });
 
     if (conversation) return conversation;
 
-    // Tạo mới nếu chưa có
-    const newConversation = await Conversation.create({ participants });
-    return newConversation;
+    return await Conversation.create({ participants });
 };
 
-
 export const getMyConversations = async (userId) => {
-    const conversations = await Conversation.find({ participants: userId })
-        .populate("participants", "fullName avatar _id")
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const conversations = await Conversation.find({
+        participants: {
+            $elemMatch: { user: userObjectId }
+        }
+    })
+        .populate("participants.user", "fullName avatar _id")
         .populate({
             path: "lastMessage",
             populate: {
@@ -38,49 +40,63 @@ export const getMyConversations = async (userId) => {
         })
         .lean();
 
-    const updated = conversations.map((conv) => {
+    return conversations.map((conv) => {
         const sender = conv.lastMessage?.sender;
         if (sender) {
             const isSelf = sender._id.toString() === userId.toString();
-            sender.label = isSelf
-                ? "Bạn"
-                : sender.fullName?.trim().split(" ").slice(-1)[0] || "Người lạ";
+            sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
         }
-        return conv;
+        return {
+            ...conv,
+            participants: conv.participants.map(pa => { return { deletedAt: pa.deletedAt, ...pa.user } })
+        };
     });
-
-    return updated;
 };
-
-
 
 export const getConversationById = async (conversationId) => {
     return await Conversation.findById(conversationId)
-        .populate("participants", "fullName avatar _id")
-        .populate("lastMessage");
+        .populate("participants.user", "fullName avatar _id")
+        .populate({
+            path: "lastMessage",
+            populate: {
+                path: "sender",
+                select: "fullName avatar _id phoneNumber",
+            }
+        });
 };
 
-
-
 export const getOrCreateFullConversation = async (userId, targetUserId) => {
-    const participants = [userId, targetUserId].sort();
-    console.log(userId, targetUserId)
+    const sortedIds = [userId, targetUserId].sort();
+
+    const participants = sortedIds.map(id => ({
+        user: new mongoose.Types.ObjectId(id),
+        deletedAt: null
+    }));
+
     let conversation = await Conversation.findOne({
-        participants: { $all: participants, $size: 2 }
+        $and: [
+            { "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) } },
+            { participants: { $size: 2 } }
+        ]
     });
 
     if (!conversation) {
         conversation = await Conversation.create({ participants });
     }
 
-    // Lấy chi tiết conversation + messages
     const fullConversation = await Conversation.findById(conversation._id)
-        .populate("participants", "fullName avatar _id")
-        .populate("lastMessage");
+        .populate("participants.user", "fullName avatar _id")
+        .populate({
+            path: "lastMessage",
+            populate: {
+                path: "sender",
+                select: "fullName avatar _id phoneNumber",
+            }
+        });
 
     const messages = await Message.find({ conversationId: conversation._id })
         .sort({ createdAt: 1 })
-        .populate("sender", "fullName avatar _id"); // lấy theo thứ tự tăng dần thời gian
+        .populate("sender", "fullName avatar _id");
 
     return { ...fullConversation.toObject(), messages };
 };
