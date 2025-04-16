@@ -7,6 +7,7 @@ const messageRouter = express.Router();
 
 messageRouter.use(authenticationMiddleware.run);
 
+messageRouter.post("/forward-many", wrapperRequestHandle(messageController.forwardManyMessage));
 messageRouter.post("/send", wrapperRequestHandle(messageController.sendMessage));
 messageRouter.get("/:conversationId", wrapperRequestHandle(messageController.getConversationMessages));
 messageRouter.patch("/hide/:conversationId", wrapperRequestHandle(messageController.hideConversationForMe));

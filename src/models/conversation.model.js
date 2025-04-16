@@ -22,6 +22,7 @@ const conversationSchema = new mongoose.Schema({
             message: "A conversation must have exactly 2 participants"
         }
     },
+    participantIds: [String],  // chứa userId1, userId2 đã sort
     lastMessage: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "message",
@@ -29,20 +30,15 @@ const conversationSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Tạo index theo userId, đảm bảo duy nhất mỗi cặp user (sắp xếp sẵn)
-conversationSchema.index(
-    {
-        "participants.0.user": 1,
-        "participants.1.user": 1
-    },
-    { unique: true }
-);
 
-// Trước khi lưu, đảm bảo userId được sắp xếp tăng dần
 conversationSchema.pre("save", function (next) {
     this.participants.sort((a, b) => a.user.toString().localeCompare(b.user.toString()));
+
+    this.participantIds = this.participants.map(p => p.user.toString());
+
     next();
 });
+
 
 const Conversation = mongoose.model("conversation", conversationSchema);
 export default Conversation;

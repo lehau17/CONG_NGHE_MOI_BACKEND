@@ -10,16 +10,18 @@ export const createConversation = async (userId, targetUserId) => {
         deletedAt: null
     }));
 
-    const conversation = await Conversation.findOne({
-        $and: [
-            { "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) } },
-            { participants: { $size: 2 } }
-        ]
+
+    let conversation = await Conversation.findOne({
+        participantIds: { $all: sortedIds },
+        $expr: { $eq: [{ $size: "$participantIds" }, 2] } // đúng 2 người
     });
 
     if (conversation) return conversation;
 
-    return await Conversation.create({ participants });
+    return await Conversation.create({
+        participants,
+        participantIds: sortedIds
+    });
 };
 
 export const getMyConversations = async (userId) => {
@@ -65,23 +67,28 @@ export const getConversationById = async (conversationId) => {
         });
 };
 
-export const getOrCreateFullConversation = async (userId, targetUserId) => {
-    const sortedIds = [userId, targetUserId].sort();
 
-    const participants = sortedIds.map(id => ({
-        user: new mongoose.Types.ObjectId(id),
-        deletedAt: null
-    }));
+export const getOrCreateFullConversation = async (userId, targetUserId) => {
+    // Chuyển về string trước khi sort để đảm bảo thứ tự
+    console.log(userId, targetUserId)
+    const sortedIds = [userId.toString(), targetUserId.toString()].sort();
 
     let conversation = await Conversation.findOne({
-        $and: [
-            { "participants.user": { $all: sortedIds.map(id => new mongoose.Types.ObjectId(id)) } },
-            { participants: { $size: 2 } }
-        ]
+        participantIds: { $all: sortedIds },
+        $expr: { $eq: [{ $size: "$participantIds" }, 2] } // đúng 2 người
     });
 
+
     if (!conversation) {
-        conversation = await Conversation.create({ participants });
+        const participants = sortedIds.map((id) => ({
+            user: new mongoose.Types.ObjectId(id),
+            deletedAt: null
+        }));
+
+        conversation = await Conversation.create({
+            participants,
+            participantIds: sortedIds
+        });
     }
 
     const fullConversation = await Conversation.findById(conversation._id)
@@ -100,3 +107,4 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
 
     return { ...fullConversation.toObject(), messages };
 };
+

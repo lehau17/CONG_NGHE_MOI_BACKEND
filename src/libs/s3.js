@@ -22,6 +22,7 @@ export const uploadFileToS3 = async (file, folder = "") => {
     });
 
     await s3.send(command);
+    console.log("chjeck >>>")
 
     return {
         key,

@@ -48,13 +48,18 @@ export const recallMessage = async (req, res, next) => {
 
 
 export const forwardMessage = async (req, res, next) => {
-    const { messageId, targetConversationId } = req.body;
+    const { messageId, targetConversationIds } = req.body;
 
     try {
-        const forwardedMessage = await messageService.forwardMessage(messageId, targetConversationId);
+        const forwardedMessage = await messageService.forwardManyMessage(messageId, targetConversationIds);
         new CreatedResponse(forwardedMessage, "Tin nhắn đã được chuyển tiếp thành công").response(res);
     } catch (error) {
         next(error);
     }
 };
-  
+
+
+export const forwardManyMessage = async (req, res, next) => {
+    const { messageId, targetConversationIds } = req.body
+    new SuccessResponse(await messageService.forwardManyMessage(messageId, targetConversationIds, req.user.user_id)).response(res)
+}

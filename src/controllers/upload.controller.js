@@ -20,6 +20,8 @@ export const uploadMultipleFiles = async (req, res, next) => {
         return res.status(400).json({ message: "No files uploaded" });
     }
 
+    console.log("check file>>>", req.files)
+
     const results = await uploadMultipleFilesToS3(req.files, "uploads/");
     return new SuccessResponse(results, "Files uploaded successfully").response(res);
 };

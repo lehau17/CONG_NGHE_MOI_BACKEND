@@ -5,7 +5,6 @@ import appSocket from "../socketIO.js";
 import { BadRequestError } from "../utils/errorHandler.js";
 
 export const createMessage = async (body, me_id) => {
-    console.log(body)
     const conversation = await Conversation.findById(body.conversationId);
     if (!conversation) throw new Error("Conversation not found");
 
@@ -141,4 +140,70 @@ export const forwardMessage = async (messageId, targetConversationId) => {
     // Trả về tin nhắn đã chuyển tiếp
     return forwardedMessage;
 };
+export const forwardManyMessage = async (messageId, targetConversationIds, me_id) => {
+    const originalMessage = await Message.findById(messageId);
+    if (!originalMessage) throw new Error("Message not found");
+
+    const forwardedMessages = await Promise.all(
+        targetConversationIds.map(async (conversationId) => {
+            const forwardedMessage = await Message.create({
+                conversationId,
+                sender: originalMessage.sender,
+                content: originalMessage.content,
+                type: originalMessage.type,
+                fileMeta: originalMessage.fileMeta,
+            });
+
+            const populatedMessage = await Message.findById(forwardedMessage._id)
+                .populate("sender", "_id fullName phoneNumber avatar")
+                .populate("replyTo");
+
+            appSocket.emitToRoom(conversationId, "new-message", populatedMessage);
+
+            await Conversation.findByIdAndUpdate(conversationId, {
+                lastMessage: populatedMessage._id,
+            });
+
+            const populatedConversation = await Conversation.findById(conversationId)
+                .populate({
+                    path: "participants.user",
+                    select: "_id fullName avatar phoneNumber",
+                })
+                .populate({
+                    path: "lastMessage",
+                    populate: {
+                        path: "sender",
+                        select: "_id fullName avatar phoneNumber",
+                    },
+                });
+
+            if (populatedConversation?.participants) {
+                populatedConversation.participants.forEach((participant) => {
+                    const isMe = participant.user._id.toString() === me_id.toString();
+                    const sender = populatedConversation.lastMessage?.sender;
+
+                    appSocket.emitToUser(participant.user._id.toString(), "update-chat-list", {
+                        ...populatedConversation.toObject(),
+                        participants: populatedConversation.participants.map(e => ({
+                            deletedAt: e.deletedAt,
+                            ...e.user.toObject(),
+                        })),
+                        lastMessage: {
+                            ...populatedConversation.lastMessage.toObject(),
+                            sender: {
+                                ...sender.toObject(),
+                                label: isMe ? "Bạn" : (sender?.fullName?.split(" ").pop() || "Người lạ"),
+                            },
+                        },
+                    });
+                });
+            }
+
+            return populatedMessage;
+        })
+    );
+
+    return true;
+};
+
 

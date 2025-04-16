@@ -13,6 +13,7 @@ class SocketIO {
         this.connectedUsers = new Map();
         this.app = app()
         this.server = createServer(this.app);
+        this.server.timeout = 5 * 60 * 1000;
         this.io = new Server(this.server, {
             cors: {
                 origin: "*",
