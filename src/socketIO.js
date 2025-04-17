@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { Server } from "socket.io";
 import envConfig from "./config/env.config.js";
+import mongoDbConnection from "./config/mongoDB.config.js";
 import app from "./server.js";
 import { getMyConversations } from "./services/conversation.service.js";
 import { UnauthorizedError } from './utils/errorHandler.js';
@@ -11,6 +12,8 @@ dotenv.config()
 class SocketIO {
     constructor() {
         this.connectedUsers = new Map();
+        mongoDbConnection.createConnection()
+
         this.app = app()
         this.server = createServer(this.app);
         this.server.timeout = 5 * 60 * 1000;
