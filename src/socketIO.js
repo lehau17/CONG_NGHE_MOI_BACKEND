@@ -50,14 +50,15 @@ class SocketIO {
 
 
             socket.on("call-declined", ({ from, conversationId }) => {
-                const callerSocketId = userSocketMap[from._id];
-                if (callerSocketId) {
-                    io.to(callerSocketId).emit("call-declined", {
+                const targetSocketIds = this.connectedUsers.get(from._id) || [];
+                targetSocketIds.forEach(id => {
+                    this.io.to(id).emit("call-declined", {
                         conversationId,
-                        reason: "Người nhận đã từ chối cuộc gọi.",
-                    });
-                }
+                        reason: "Người nhận đã từ chối cuộc gọi."
+                    })
+                })
             });
+
 
             socket.on("call-user", ({ to, from, conversationId, token }) => {
                 const targetSocketIds = this.connectedUsers.get(to) || []; // hoặc Map.get(to)
