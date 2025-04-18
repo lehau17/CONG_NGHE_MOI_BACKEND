@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import FriendRequest from "../models/friendRequest.model.js";
 import appSocket from "../socketIO.js";
 import { BadRequestError } from "../utils/errorHandler.js";
@@ -47,7 +48,7 @@ export const acceptFriendRequest = async (requestId) => {
 };
 
 export const rejectFriendRequest = async (requestId) => {
-    return await FriendRequest.findByIdAndUpdate(requestId, { status: "rejected" }, { new: true });
+    return await FriendRequest.findByIdAndDelete(new mongoose.Types.ObjectId(requestId))
 };
 
 export const getFriendRequests = async (userId, status = "pending") => {
@@ -70,8 +71,8 @@ export const getFriendsList = async (userId) => {
             { to: userId, status: "accepted" },
         ]
     })
-    .populate("from", "fullName avatar")  // Lấy thông tin người gửi
-    .populate("to", "fullName avatar");   // Lấy thông tin người nhận
+        .populate("from", "fullName avatar")  // Lấy thông tin người gửi
+        .populate("to", "fullName avatar");   // Lấy thông tin người nhận
 
     // Lọc ra danh sách bạn bè từ các yêu cầu kết bạn đã chấp nhận
     const friends = requests.map(request => {
