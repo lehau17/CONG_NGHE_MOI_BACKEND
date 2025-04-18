@@ -67,6 +67,10 @@ class SocketIO {
                 });
             });
 
+            socket.on("end-call", ({ conversationId }) => {
+                this.io.to(conversationId).emit("end-call", { conversationId });
+            });
+
             socket.on("join-room", (roomId) => {
                 if (roomId) {
                     socket.join(roomId);
