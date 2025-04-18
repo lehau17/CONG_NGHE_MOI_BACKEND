@@ -100,7 +100,7 @@ export const markConversationDeletedForUser = async (conversationId, userId) => 
 
 export const recallMessage = async (messageId, userId) => {
     const message = await Message.findById(messageId);
-    if (!message) throw new Error("Tin nhắn không tồn tại");
+    if (!message) throw new BadRequestError("Tin nhắn không tồn tại");
 
     // Chỉ người gửi mới được thu hồi
     if (message.sender.toString() !== userId.toString()) {
@@ -109,6 +109,7 @@ export const recallMessage = async (messageId, userId) => {
 
     message.content = "Tin nhắn đã bị thu hồi";
     message.type = "text";
+    message.isRevoke = true
     message.fileMeta = [];
 
     await message.save();
@@ -119,9 +120,8 @@ export const recallMessage = async (messageId, userId) => {
 
 export const forwardMessage = async (messageId, targetConversationId) => {
     const originalMessage = await Message.findById(messageId);
-    if (!originalMessage) throw new Error("Message not found");
+    if (!originalMessage) throw new BadRequestError("Message not found");
 
-    // Tạo tin nhắn mới với nội dung từ tin nhắn gốc, nhưng với conversation mới
     const forwardedMessage = await Message.create({
         conversationId: targetConversationId,
         sender: originalMessage.sender,
@@ -130,14 +130,12 @@ export const forwardMessage = async (messageId, targetConversationId) => {
         fileMeta: originalMessage.fileMeta
     });
 
-    // Cập nhật lại lastMessage trong Conversation
     const targetConversation = await Conversation.findById(targetConversationId);
     if (!targetConversation) throw new Error("Target conversation not found");
 
     targetConversation.lastMessage = forwardedMessage._id;
     await targetConversation.save();
 
-    // Trả về tin nhắn đã chuyển tiếp
     return forwardedMessage;
 };
 export const forwardManyMessage = async (messageId, targetConversationIds, me_id) => {

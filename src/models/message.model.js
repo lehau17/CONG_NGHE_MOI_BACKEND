@@ -41,6 +41,10 @@ const messageSchema = new mongoose.Schema({
     readAt: {
         type: Date,
         default: null
+    },
+    isRevoke: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 
