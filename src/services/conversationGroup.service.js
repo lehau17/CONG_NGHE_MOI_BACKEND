@@ -229,3 +229,17 @@ export const searchGroupsByName = async (userId, keyword) => {
     });
 };
 
+export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
+    const group = await GroupConversation.findById(groupId);
+    if (!group) throw new NotFoundError("Không tìm thấy nhóm");
+
+    const requester = group.participants.find(p => p.user.toString() === requesterId);
+    if (!requester || (requester.role !== "owner" && requester.role !== "admin")) {
+        throw new ForbiddenError("Chỉ owner hoặc admin mới có quyền cập nhật nhóm");
+    }
+
+    if (name) group.name = name;
+    if (avatar) group.avatar = avatar;
+
+    return await group.save();
+};

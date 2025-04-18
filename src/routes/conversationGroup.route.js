@@ -15,5 +15,6 @@ router.post("/:groupId/change-role", wrapperRequestHandle(groupController.change
 router.post("/:groupId/leave", wrapperRequestHandle(groupController.leaveGroup));
 router.get("/:groupId/members", wrapperRequestHandle(groupController.getGroupMembersWithRoles));
 router.get("/search/by-name", wrapperRequestHandle(groupController.searchGroupsByName));
+router.put("/:groupId/update-info", wrapperRequestHandle(groupController.updateGroupInfo));
 
 export default router;

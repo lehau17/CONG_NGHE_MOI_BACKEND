@@ -59,3 +59,13 @@ export const searchGroupsByName = async (req, res) => {
     );
     new SuccessResponse(groups, "Tìm kiếm nhóm thành công").response(res);
 };
+
+export const updateGroupInfo = async (req, res) => {
+    const group = await groupService.updateGroupInfo(
+        req.user.user_id,
+        req.params.groupId,
+        req.body.name,
+        req.body.avatar
+    );
+    new SuccessResponse(group, "Cập nhật thông tin nhóm thành công").response(res);
+};
