@@ -48,6 +48,17 @@ class SocketIO {
                 })
             });
 
+
+            socket.on("call-declined", ({ from, conversationId }) => {
+                const callerSocketId = userSocketMap[from._id];
+                if (callerSocketId) {
+                    io.to(callerSocketId).emit("call-declined", {
+                        conversationId,
+                        reason: "Người nhận đã từ chối cuộc gọi.",
+                    });
+                }
+            });
+
             socket.on("call-user", ({ to, from, conversationId, token }) => {
                 const targetSocketIds = this.connectedUsers.get(to) || []; // hoặc Map.get(to)
                 targetSocketIds.forEach(id => {

@@ -39,13 +39,13 @@ const app = () => {
         const appId = process.env.AGORA_APP_ID;
         const appCertificate = process.env.AGORA_APP_CERT;
         const { channel, uid } = req.query; // uid ở đây là _id của Mongo
-
+        console.log("DEBUG =>>>>", channel, uid, appId, appCertificate)
         if (!channel || !uid) {
             return res.status(400).json({ error: "Missing channel or uid" });
         }
 
         const role = RtcRole.PUBLISHER;
-        const expireTimeSeconds = 3600;
+        const expireTimeSeconds = 3600000;
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const privilegeExpiredTs = currentTimestamp + expireTimeSeconds;
 
