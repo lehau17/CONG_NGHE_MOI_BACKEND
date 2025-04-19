@@ -69,3 +69,19 @@ export const updateGroupInfo = async (req, res) => {
     );
     new SuccessResponse(group, "Cập nhật thông tin nhóm thành công").response(res);
 };
+
+export const getFriendsNotInGroup = async (req, res) => {
+    const { groupId } = req.params;
+    const currentUserId = req.user._id;
+
+    const friends = await groupService.getFriendsNotInGroup(groupId, currentUserId);
+    return res.json(friends);
+};
+
+export const toggleRequireApproval = async (req, res) => {
+    const { groupId } = req.params;
+    const userId = req.user.user_id;
+
+    const result = await groupService.toggleRequireApprovalService(groupId, userId);
+    res.json(result);
+};

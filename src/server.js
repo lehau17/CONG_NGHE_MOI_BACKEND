@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import contactRouter from "./routes/contact.routes.js";
 import conversationRouter from "./routes/conversation.route.js";
 import conversationGroupRouter from "./routes/conversationGroup.route.js";
+import pendingGroupInvite from "./routes/pendingGroupInvite.route.js"
 import friendRequestRoutes from "./routes/friendRequest.route.js";
 import messageRouter from './routes/message.routes.js';
 import uploadRouter from "./routes/upload.route.js";
@@ -32,6 +33,7 @@ const app = () => {
     app.use("/api/auth", authRoutes);
     app.use("/api/conversation", conversationRouter);
     app.use("/api/conversationGroup", conversationGroupRouter);
+    app.use("/api/pendingGroupInvite", pendingGroupInvite);
     app.use("/api/message", messageRouter);
     app.use("/api/user", userRouter)
     app.use("/api/upload", uploadRouter);

@@ -1,4 +1,6 @@
 import GroupConversation from "../models/conversationGroup.model.js";
+import PendingGroupInvite from "../models/pendingGroupInvite.model.js"
+import FriendRequest from "../models/friendRequest.model.js";
 import mongoose from "mongoose";
 import { ForbiddenError, NotFoundError, BadRequestError } from "../utils/errorHandler.js";
 import Message from "../models/message.model.js";
@@ -60,16 +62,38 @@ export const addMember = async (requesterId, groupId, userId) => {
     if (!group) throw new NotFoundError("Không tìm thấy nhóm");
 
     const requester = group.participants.find(p => p.user.toString() === requesterId);
-    if (!requester || (requester.role !== "owner" && requester.role !== "admin")) {
-        throw new ForbiddenError("Không có quyền thêm thành viên");
-    }
+    if (!requester) throw new ForbiddenError("Bạn không phải là thành viên của nhóm");
 
     const exists = group.participants.some(p => p.user.toString() === userId);
     if (exists) throw new Error("Thành viên đã tồn tại trong nhóm");
 
-    group.participants.push({ user: userId, role: "member" });
-    return await group.save();
+    // ✅ Trường hợp KHÔNG cần duyệt: ai cũng có thể thêm ngay
+    if (!group.requireApproval) {
+        group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
+        await group.save();
+
+        return { message: "Thêm thành viên vào nhóm thành công (không cần duyệt)" };
+    }
+
+    // ✅ Trường hợp CÓ cần duyệt
+    if (requester.role === "owner") {
+        group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
+        await group.save();
+
+        return { message: "Thêm thành viên vào nhóm thành công (do owner duyệt)" };
+    } else {
+        await PendingGroupInvite.create({
+            groupId,
+            invitedUser: userId,
+            invitedBy: requesterId,
+            status: "pending"
+        });
+
+        return { message: "Đã tạo lời mời, chờ người dùng hoặc quản lý nhóm xác nhận" };
+    }
 };
+
+
 
 // Xóa thành viên khỏi nhóm
 export const removeMember = async (requesterId, groupId, userId) => {
@@ -243,4 +267,57 @@ export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
     if (avatar) group.avatar = avatar;
 
     return await group.save();
+};
+
+export const getFriendsNotInGroup = async (groupId, currentUserId) => {
+    // 1. Lấy tất cả friend requests đã accepted (2 chiều)
+    const friends = await FriendRequest.find({
+        status: "accepted",
+        $or: [
+            { from: currentUserId },
+            { to: currentUserId }
+        ]
+    });
+
+    // Lấy danh sách friendId (không phải currentUser)
+    const friendIds = friends.map(f =>
+        f.from.toString() === currentUserId.toString() ? f.to : f.from
+    );
+
+    // 2. Lấy danh sách participant trong group
+    const group = await GroupConversation.findById(groupId);
+    if (!group) throw new Error("Không tìm thấy nhóm");
+
+    const participantIds = group.participants.map(p => p.user.toString());
+
+    // 3. Lọc ra bạn bè chưa ở trong nhóm
+    const availableFriendIds = friendIds.filter(
+        friendId => !participantIds.includes(friendId.toString())
+    );
+
+    // 4. Trả thông tin chi tiết (nếu cần)
+    const availableFriends = await User.find({
+        _id: { $in: availableFriendIds }
+    }).select("_id username avatar"); // Tùy trường bạn muốn trả
+
+    return availableFriends;
+};
+
+export const toggleRequireApprovalService = async (groupId, userId) => {
+    const group = await GroupConversation.findById(groupId);
+    if (!group) throw new NotFoundError("Không tìm thấy nhóm.");
+    const isOwner = group.participants.some(
+        p => p.user.toString() === userId.toString() && p.role === "owner"
+    );
+
+    if (!isOwner) throw new ForbiddenError("Chỉ nhóm trưởng mới có quyền thay đổi yêu cầu duyệt.");
+
+    group.requireApproval = !group.requireApproval;
+    await group.save();
+
+    return {
+        success: true,
+        message: `Đã ${group.requireApproval ? "bật" : "tắt"} yêu cầu duyệt thành viên.`,
+        requireApproval: group.requireApproval,
+    };
 };

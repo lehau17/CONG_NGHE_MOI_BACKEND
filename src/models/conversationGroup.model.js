@@ -26,7 +26,7 @@ const groupConversationSchema = new mongoose.Schema({
         type: String,
         default: "group",
         enum: ["group"],
-        immutable: true // không cho sửa sau khi tạo
+        immutable: true
     },
     name: {
         type: String,
@@ -41,16 +41,17 @@ const groupConversationSchema = new mongoose.Schema({
         ref: "user",
         required: true
     },
+    requireApproval: {
+        type: Boolean,
+        default: false
+    },
     lastMessage: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "message",
         default: null
-    },
-    messages: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "message"
-    }]
+    }
 }, { timestamps: true });
+
 
 // Đảm bảo có ít nhất một owner (người tạo nhóm)
 groupConversationSchema.pre("save", function (next) {

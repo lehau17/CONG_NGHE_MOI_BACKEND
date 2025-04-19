@@ -16,5 +16,7 @@ router.post("/:groupId/leave", wrapperRequestHandle(groupController.leaveGroup))
 router.get("/:groupId/members", wrapperRequestHandle(groupController.getGroupMembersWithRoles));
 router.get("/search/by-name", wrapperRequestHandle(groupController.searchGroupsByName));
 router.put("/:groupId/update-info", wrapperRequestHandle(groupController.updateGroupInfo));
+router.get("/:groupId/friends-not-in-group", wrapperRequestHandle(groupController.getFriendsNotInGroup));
+router.post("/:groupId/toggle-require-approval", wrapperRequestHandle(groupController.toggleRequireApproval));
 
 export default router;
