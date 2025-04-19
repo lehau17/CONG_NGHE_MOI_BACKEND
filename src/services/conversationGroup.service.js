@@ -4,7 +4,7 @@ import { ForbiddenError, NotFoundError, BadRequestError } from "../utils/errorHa
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js"
 // Tạo nhóm mới
-export const createGroup = async (creatorId, { name, members = [] }) => {
+export const createGroup = async (creatorId, { name, avatar, members = [] }) => {
     // Kiểm tra tổng số thành viên phải >= 3 (bao gồm creator)
     if (members.length < 2) {
         throw new BadRequestError("Nhóm phải có ít nhất 3 thành viên bao gồm người tạo");
@@ -16,8 +16,8 @@ export const createGroup = async (creatorId, { name, members = [] }) => {
         throw new BadRequestError("Người tạo nhóm không có avatar.");
     }
 
-    // Avatar của nhóm sẽ là avatar của creator
-    const groupAvatarUrl = creator.avatar;  // Sử dụng avatar của creator
+    // Nếu avatar nhóm không được truyền vào, dùng avatar của creator
+    const groupAvatarUrl = avatar || creator.avatar;
 
     // Tạo danh sách người tham gia
     const allParticipants = [
@@ -28,7 +28,7 @@ export const createGroup = async (creatorId, { name, members = [] }) => {
     // Tạo nhóm
     const group = await GroupConversation.create({
         name,
-        avatar: groupAvatarUrl,  // Sử dụng avatar của creator cho nhóm
+        avatar: groupAvatarUrl,  // Sử dụng avatar đã xử lý
         participants: allParticipants,
         createdBy: creatorId
     });
@@ -52,6 +52,7 @@ export const createGroup = async (creatorId, { name, members = [] }) => {
     // Trả về nhóm và tin nhắn
     return { group, message };
 };
+
 
 // Thêm thành viên vào nhóm
 export const addMember = async (requesterId, groupId, userId) => {
