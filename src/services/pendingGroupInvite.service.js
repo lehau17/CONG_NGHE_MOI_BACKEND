@@ -19,9 +19,8 @@ export const acceptInviteService = async (inviteId, currentUserId) => {
 
     const group = await GroupConversation.findById(invite.groupId);
     if (!group) throw new NotFoundError("Không tìm thấy nhóm.");
-    console.log(inviteId);
-    console.log(currentUserId);
-    // Kiểm tra người gọi có phải người được mời hoặc owner không
+
+    // Kiểm tra quyền: là người được mời hoặc là owner
     const isOwner = group.participants.some(
         p => p.user.toString() === currentUserId.toString() && p.role === "owner"
     );
@@ -31,9 +30,10 @@ export const acceptInviteService = async (inviteId, currentUserId) => {
         throw new ForbiddenError("Bạn không có quyền chấp nhận lời mời này.");
     }
 
+    // Đánh dấu trạng thái accepted
     invite.status = "accepted";
-    await invite.save();
 
+    // Nếu chưa là thành viên thì thêm vào group
     const alreadyMember = group.participants.some(
         p => p.user.toString() === invite.invitedUser.toString()
     );
@@ -47,10 +47,12 @@ export const acceptInviteService = async (inviteId, currentUserId) => {
         await group.save();
     }
 
-    await invite.deleteOne();
+    // Lưu lại trạng thái mới của invite
+    await invite.save();
 
     return { message: "Tham gia nhóm thành công." };
 };
+
 
 export const rejectInviteService = async (inviteId, currentUserId) => {
     const invite = await PendingGroupInvite.findById(inviteId);

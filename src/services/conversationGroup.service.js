@@ -270,7 +270,7 @@ export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
 };
 
 export const getFriendsNotInGroup = async (groupId, currentUserId) => {
-    // 1. Lấy tất cả friend requests đã accepted (2 chiều)
+    // 1. Lấy tất cả bạn bè đã accepted (friendship 2 chiều)
     const friends = await FriendRequest.find({
         status: "accepted",
         $or: [
@@ -281,7 +281,7 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 
     // Lấy danh sách friendId (không phải currentUser)
     const friendIds = friends.map(f =>
-        f.from.toString() === currentUserId.toString() ? f.to : f.from
+        f.from.toString() === currentUserId.toString() ? f.to.toString() : f.from.toString()
     );
 
     // 2. Lấy danh sách participant trong group
@@ -290,18 +290,29 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 
     const participantIds = group.participants.map(p => p.user.toString());
 
-    // 3. Lọc ra bạn bè chưa ở trong nhóm
+    // 3. Lấy danh sách invite đang pending hoặc đã accepted
+    const invites = await PendingGroupInvite.find({
+        group: groupId,
+        status: { $in: ["pending", "accepted"] }
+    });
+
+    const invitedUserIds = invites.map(inv => inv.invitedUser.toString());
+
+    // 4. Lọc bạn bè không nằm trong participants và không trong invited (pending/accepted)
     const availableFriendIds = friendIds.filter(
-        friendId => !participantIds.includes(friendId.toString())
+        friendId =>
+            !participantIds.includes(friendId) &&
+            !invitedUserIds.includes(friendId)
     );
 
-    // 4. Trả thông tin chi tiết (nếu cần)
+    // 5. Trả thông tin chi tiết
     const availableFriends = await User.find({
         _id: { $in: availableFriendIds }
-    }).select("_id username avatar"); // Tùy trường bạn muốn trả
+    }).select("_id username avatar");
 
     return availableFriends;
 };
+
 
 export const toggleRequireApprovalService = async (groupId, userId) => {
     const group = await GroupConversation.findById(groupId);
