@@ -2,6 +2,7 @@ import GroupConversation from "../models/conversationGroup.model.js";
 import PendingGroupInvite from "../models/pendingGroupInvite.model.js";
 
 import { NotFoundError, BadRequestError } from "../utils/errorHandler.js";
+import appSocket from "../socketIO.js"
 
 export const createInviteService = async ({ groupId, invitedUser, invitedBy }) => {
     const invite = await PendingGroupInvite.create({
@@ -10,8 +11,18 @@ export const createInviteService = async ({ groupId, invitedUser, invitedBy }) =
         invitedBy,
         status: "pending"
     });
+
+    // Emit về room của group để owner có thể update ngay lập tức
+    appSocket.emitToRoom(groupId.toString(), "new-group-invite", {
+        groupId,
+        invitedUser,
+        invitedBy,
+        inviteId: invite._id,
+    });
+
     return invite;
 };
+
 
 export const acceptInviteService = async (inviteId, currentUserId) => {
     const invite = await PendingGroupInvite.findById(inviteId);
@@ -32,6 +43,7 @@ export const acceptInviteService = async (inviteId, currentUserId) => {
 
     // Đánh dấu trạng thái accepted
     invite.status = "accepted";
+    let newlyJoined = false;
 
     // Nếu chưa là thành viên thì thêm vào group
     const alreadyMember = group.participants.some(
@@ -45,13 +57,26 @@ export const acceptInviteService = async (inviteId, currentUserId) => {
             joinedAt: new Date()
         });
         await group.save();
+        newlyJoined = true;
     }
 
-    // Lưu lại trạng thái mới của invite
     await invite.save();
 
-    return { message: "Tham gia nhóm thành công." };
+    if (newlyJoined) {
+        appSocket.emitToRoom(group._id.toString(), "user-joined-group", {
+            groupId: group._id,
+            user: invite.invitedUser,
+        });
+    }
+
+    return {
+        message: "Tham gia nhóm thành công.",
+        groupId: group._id,
+        userId: invite.invitedUser,
+        newlyJoined,
+    };
 };
+
 
 
 export const rejectInviteService = async (inviteId, currentUserId) => {
