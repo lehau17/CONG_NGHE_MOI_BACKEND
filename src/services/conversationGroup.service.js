@@ -290,10 +290,10 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 
     const participantIds = group.participants.map(p => p.user.toString());
 
-    // 3. Lấy danh sách invite đang pending hoặc đã accepted
-    const invites = await PendingGroupInvite.find({
-        group: groupId,
-        status: { $in: ["pending", "accepted"] }
+    // 3. Lấy danh sách invite đang pending
+    const pendingInvites = await PendingGroupInvite.find({
+        groupId: groupId,
+        status: "pending"
     });
 
     const invitedUserIds = invites.map(inv => inv.invitedUser.toString());
