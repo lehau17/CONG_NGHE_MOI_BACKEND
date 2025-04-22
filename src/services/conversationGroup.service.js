@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { ForbiddenError, NotFoundError, BadRequestError } from "../utils/errorHandler.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js"
+import appSocket from "../socketIO.js"
 // Tạo nhóm mới
 export const createGroup = async (creatorId, { name, avatar, members = [] }) => {
     // Kiểm tra tổng số thành viên phải >= 3 (bao gồm creator)
@@ -51,6 +52,11 @@ export const createGroup = async (creatorId, { name, avatar, members = [] }) => 
     group.lastMessage = message._id;
     await group.save();
 
+    // Gửi sự kiện tạo nhóm đến từng thành viên
+    allParticipants.forEach(p => {
+        appSocket.to(p.user.toString()).emit('groupCreated', { group, message });
+    });
+
     // Trả về nhóm và tin nhắn
     return { group, message };
 };
@@ -71,7 +77,7 @@ export const addMember = async (requesterId, groupId, userId) => {
     if (!group.requireApproval) {
         group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
         await group.save();
-
+        appSocket.to(userId).emit('memberAdded', { groupId, userId });
         return { message: "Thêm thành viên vào nhóm thành công (không cần duyệt)" };
     }
 
@@ -79,7 +85,7 @@ export const addMember = async (requesterId, groupId, userId) => {
     if (requester.role === "owner") {
         group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
         await group.save();
-
+        appSocket.to(userId).emit('memberAdded', { groupId, userId });
         return { message: "Thêm thành viên vào nhóm thành công (do owner duyệt)" };
     } else {
         await PendingGroupInvite.create({
@@ -114,7 +120,9 @@ export const removeMember = async (requesterId, groupId, userId) => {
 
     // Tiến hành xóa user khỏi danh sách thành viên
     group.participants = group.participants.filter(p => p.user.toString() !== userId);
-
+    group.participants.forEach(p => {
+        appSocket.to(p.user.toString()).emit('memberRemoved', { groupId, userId });
+    });
     return await group.save();
 };
 
@@ -133,7 +141,9 @@ export const deleteGroup = async (requesterId, groupId) => {
     if (requester.role !== "owner" && group.participants.length > 1) {
         throw new ForbiddenError("Chỉ người có quyền owner mới có thể giải tán nhóm, hoặc nhóm chỉ có một thành viên");
     }
-
+    group.participants.forEach(p => {
+        appSocket.to(p.user.toString()).emit('groupDeleted', { groupId });
+    });
     await group.deleteOne();
 };
 
@@ -166,7 +176,9 @@ export const changeMemberRole = async (requesterId, groupId, userId, newRole) =>
 
     // Đánh dấu mảng participants là đã bị sửa
     group.markModified('participants');
-
+    group.participants.forEach(p => {
+        appSocket.to(p.user.toString()).emit('memberRoleChanged', { groupId, userId, newRole });
+    });
     return await group.save();
 };
 
@@ -194,6 +206,22 @@ export const leaveGroup = async (requesterId, groupId) => {
     // Loại bỏ thành viên khỏi nhóm
     group.participants.splice(participantIndex, 1);
     await group.save();
+
+
+    // Gửi sự kiện thông báo có người rời nhóm cho tất cả thành viên còn lại
+    group.participants.forEach(p => {
+        // Sử dụng Socket.IO để gửi sự kiện đến các thành viên còn lại
+        appSocket.to(p.user.toString()).emit("member-left", {
+            groupId,
+            leftUserId: requesterId, // ID của người rời nhóm
+        });
+    });
+
+    // Trả về kết quả nếu cần
+    return {
+        success: true,
+        message: "Bạn đã rời khỏi nhóm thành công.",
+    };
 };
 
 // Lấy danh sách thành viên nhóm với role
@@ -266,11 +294,24 @@ export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
     if (name) group.name = name;
     if (avatar) group.avatar = avatar;
 
-    return await group.save();
+    // Lưu thông tin nhóm đã thay đổi
+    await group.save();
+
+    // Gửi sự kiện đến tất cả các thành viên trong nhóm để cập nhật thông tin
+    group.participants.forEach(p => {
+        // Gửi sự kiện cho mỗi thành viên trong nhóm
+        appSocket.to(p.user.toString()).emit("group-info-updated", {
+            groupId,
+            name: group.name,
+            avatar: group.avatar
+        });
+    });
+
+    return group;
 };
 
 export const getFriendsNotInGroup = async (groupId, currentUserId) => {
-    // 1. Lấy tất cả friend requests đã accepted (2 chiều)
+    // 1. Lấy tất cả bạn bè đã accepted (friendship 2 chiều)
     const friends = await FriendRequest.find({
         status: "accepted",
         $or: [
@@ -281,7 +322,7 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 
     // Lấy danh sách friendId (không phải currentUser)
     const friendIds = friends.map(f =>
-        f.from.toString() === currentUserId.toString() ? f.to : f.from
+        f.from.toString() === currentUserId.toString() ? f.to.toString() : f.from.toString()
     );
 
     // 2. Lấy danh sách participant trong group
@@ -290,18 +331,29 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 
     const participantIds = group.participants.map(p => p.user.toString());
 
-    // 3. Lọc ra bạn bè chưa ở trong nhóm
+    // 3. Lấy danh sách invite đang pending
+    const pendingInvites = await PendingGroupInvite.find({
+        groupId: groupId,
+        status: "pending"
+    });
+
+    const invitedUserIds = invites.map(inv => inv.invitedUser.toString());
+
+    // 4. Lọc bạn bè không nằm trong participants và không trong invited (pending/accepted)
     const availableFriendIds = friendIds.filter(
-        friendId => !participantIds.includes(friendId.toString())
+        friendId =>
+            !participantIds.includes(friendId) &&
+            !invitedUserIds.includes(friendId)
     );
 
-    // 4. Trả thông tin chi tiết (nếu cần)
+    // 5. Trả thông tin chi tiết
     const availableFriends = await User.find({
         _id: { $in: availableFriendIds }
-    }).select("_id username avatar"); // Tùy trường bạn muốn trả
+    }).select("_id username avatar");
 
     return availableFriends;
 };
+
 
 export const toggleRequireApprovalService = async (groupId, userId) => {
     const group = await GroupConversation.findById(groupId);
