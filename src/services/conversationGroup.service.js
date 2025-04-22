@@ -54,7 +54,7 @@ export const createGroup = async (creatorId, { name, avatar, members = [] }) => 
 
     // Gửi sự kiện tạo nhóm đến từng thành viên
     allParticipants.forEach(p => {
-        appSocket.to(p.user.toString()).emit('groupCreated', { group, message });
+        appSocket.emitToUser(p.user.toString(), 'groupCreated', { group, message });
     });
 
     // Trả về nhóm và tin nhắn
@@ -77,7 +77,13 @@ export const addMember = async (requesterId, groupId, userId) => {
     if (!group.requireApproval) {
         group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
         await group.save();
-        appSocket.to(userId).emit('memberAdded', { groupId, userId });
+        group.participants.forEach(p => {
+            appSocket.emitToUser(p.user.toString(), 'group:member-added', {
+                groupId,
+                addedUserId: userId,
+                addedBy: requesterId
+            });
+        });
         return { message: "Thêm thành viên vào nhóm thành công (không cần duyệt)" };
     }
 
@@ -85,7 +91,13 @@ export const addMember = async (requesterId, groupId, userId) => {
     if (requester.role === "owner") {
         group.participants.push({ user: userId, role: "member", joinedAt: new Date() });
         await group.save();
-        appSocket.to(userId).emit('memberAdded', { groupId, userId });
+        group.participants.forEach(p => {
+            appSocket.emitToUser(p.user.toString(), 'group:member-added', {
+                groupId,
+                addedUserId: userId,
+                addedBy: requesterId
+            });
+        });
         return { message: "Thêm thành viên vào nhóm thành công (do owner duyệt)" };
     } else {
         await PendingGroupInvite.create({
@@ -121,7 +133,11 @@ export const removeMember = async (requesterId, groupId, userId) => {
     // Tiến hành xóa user khỏi danh sách thành viên
     group.participants = group.participants.filter(p => p.user.toString() !== userId);
     group.participants.forEach(p => {
-        appSocket.to(p.user.toString()).emit('memberRemoved', { groupId, userId });
+        appSocket.emitToUser(p.user.toString(), 'group:member-removed', {
+            groupId,
+            removedUserId: userId,
+            removedBy: requesterId
+        });
     });
     return await group.save();
 };
@@ -142,7 +158,7 @@ export const deleteGroup = async (requesterId, groupId) => {
         throw new ForbiddenError("Chỉ người có quyền owner mới có thể giải tán nhóm, hoặc nhóm chỉ có một thành viên");
     }
     group.participants.forEach(p => {
-        appSocket.to(p.user.toString()).emit('groupDeleted', { groupId });
+        appSocket.emitToUser(p.user.toString(), 'group:deleted', { groupId });
     });
     await group.deleteOne();
 };
@@ -177,7 +193,11 @@ export const changeMemberRole = async (requesterId, groupId, userId, newRole) =>
     // Đánh dấu mảng participants là đã bị sửa
     group.markModified('participants');
     group.participants.forEach(p => {
-        appSocket.to(p.user.toString()).emit('memberRoleChanged', { groupId, userId, newRole });
+        appSocket.emitToUser(p.user.toString(), 'group:memberRoleChanged', {
+            groupId,
+            userId,
+            newRole
+        });
     });
     return await group.save();
 };
@@ -211,7 +231,7 @@ export const leaveGroup = async (requesterId, groupId) => {
     // Gửi sự kiện thông báo có người rời nhóm cho tất cả thành viên còn lại
     group.participants.forEach(p => {
         // Sử dụng Socket.IO để gửi sự kiện đến các thành viên còn lại
-        appSocket.to(p.user.toString()).emit("member-left", {
+        appSocket.emitToUser(p.user.toString(), 'group:memberLeft', {
             groupId,
             leftUserId: requesterId, // ID của người rời nhóm
         });
@@ -300,7 +320,7 @@ export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
     // Gửi sự kiện đến tất cả các thành viên trong nhóm để cập nhật thông tin
     group.participants.forEach(p => {
         // Gửi sự kiện cho mỗi thành viên trong nhóm
-        appSocket.to(p.user.toString()).emit("group-info-updated", {
+        appSocket.emitToUser(p.user.toString(), 'group:infoUpdated', {
             groupId,
             name: group.name,
             avatar: group.avatar
