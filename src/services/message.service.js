@@ -123,13 +123,24 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
     // 1. Tìm trong Conversation
     let conversation = await Conversation.findById(conversationId).select("participants");
     let isGroup = false;
+    let role = null;
 
     // 2. Nếu không có, tìm trong ConversationGroup
     if (!conversation) {
-        conversation = await ConversationGroup.findById(conversationId).select("participants");
+        const group = await ConversationGroup.findById(conversationId).select("participants");
+        if (!group) throw new Error("Conversation not found");
+        
+        conversation = group;
         isGroup = true;
+
+        // Tìm role nếu là group
+        const participant = group.participants.find(p =>
+            p.user.toString() === currentUserId.toString()
+        );
+        role = participant?.role || null;
     }
 
+    // Nếu là conversation cá nhân mà không tìm thấy
     if (!conversation) throw new BadRequestError("Conversation not found");
 
     // 3. Tìm participant tương ứng và thời điểm deletedAt
@@ -139,7 +150,7 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
 
     const deletedAt = participant?.deletedAt || null;
 
-    // 2. Truy vấn tin nhắn sau thời điểm deletedAt (nếu có)
+    // 4. Truy vấn tin nhắn sau thời điểm deletedAt (nếu có)
     const filter = {
         conversationId,
         ...(deletedAt ? { createdAt: { $gt: deletedAt } } : {})
@@ -150,8 +161,13 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
         .populate("sender", "_id fullName avatar")
         .populate("replyTo");
 
-    return messages;
+    // 5. Trả kết quả và role nếu là nhóm
+    return {
+        messages,
+        ...(isGroup && { role })
+    };
 };
+
 
 export const markConversationDeletedForUser = async (conversationId, userId) => {
     const now = new Date();

@@ -132,9 +132,6 @@ export const removeMember = async (requesterId, groupId, userId) => {
     if (requesterId === userId) {
         throw new ForbiddenError("Chủ nhóm không thể tự xóa chính mình khỏi nhóm");
     }
-
-    // Tiến hành xóa user khỏi danh sách thành viên
-    group.participants = group.participants.filter(p => p.user.toString() !== userId);
     group.participants.forEach(p => {
         appSocket.emitToUser(p.user.toString(), 'group:member-removed', {
             groupId,
@@ -142,6 +139,8 @@ export const removeMember = async (requesterId, groupId, userId) => {
             removedBy: requesterId
         });
     });
+    // Tiến hành xóa user khỏi danh sách thành viên
+    group.participants = group.participants.filter(p => p.user.toString() !== userId);
     return await group.save();
 };
 
