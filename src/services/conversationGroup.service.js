@@ -359,7 +359,7 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
         status: "pending"
     });
 
-    const invitedUserIds = invites.map(inv => inv.invitedUser.toString());
+    const invitedUserIds = pendingInvites.map(inv => inv.invitedUser.toString());
 
     // 4. Lọc bạn bè không nằm trong participants và không trong invited (pending/accepted)
     const availableFriendIds = friendIds.filter(
