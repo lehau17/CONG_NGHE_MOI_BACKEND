@@ -30,18 +30,28 @@ export const createMessage = async (body, me_id) => {
     conversation.lastMessage = message._id;
     await conversation.save();
 
-    const [populatedMessage, populatedConversation] = await Promise.all(
-        [(await message.populate("sender", "_id fullName phoneNumber avatar")).populate("replyTo"),
-        conversation.populate("participants.user", "_id fullName avatar")
-            .populate({
-                path: "lastMessage",
-                populate: {
-                    path: "sender",
-                    select: "_id fullName phoneNumber avatar"
+    const [populatedMessage, populatedConversation] = await Promise.all([
+        message
+            .populate([
+                { path: "sender", select: "_id fullName phoneNumber avatar" },
+                { path: "replyTo" }
+            ]),
+        conversation
+            .populate([
+                {
+                    path: "participants.user",
+                    select: "_id fullName avatar"
+                },
+                {
+                    path: "lastMessage",
+                    populate: {
+                        path: "sender",
+                        select: "_id fullName phoneNumber avatar"
+                    }
                 }
-            })
-            .lean()
-        ])
+            ])
+            .then(doc => doc.toObject()) // thay thế .lean() cho Document
+    ]);
 
 
 
