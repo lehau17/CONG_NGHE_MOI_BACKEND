@@ -1,6 +1,17 @@
 import * as groupService from "../services/conversationGroup.service.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
+
+export const addMembers = async (req, res) => {
+    const result = await groupService.addMembers(
+        req.user.user_id,
+        req.params.groupId,
+        req.body.userIds // 👈 là mảng
+    );
+
+    new SuccessResponse(result, "Thêm nhiều thành viên thành công").response(res);
+};
+
 export const createGroup = async (req, res) => {
     const group = await groupService.createGroup(req.user.user_id, req.body);
     new CreatedResponse(group, "Tạo nhóm thành công").response(res);

@@ -18,5 +18,6 @@ router.get("/search/by-name", wrapperRequestHandle(groupController.searchGroupsB
 router.put("/:groupId/update-info", wrapperRequestHandle(groupController.updateGroupInfo));
 router.get("/:groupId/friends-not-in-group", wrapperRequestHandle(groupController.getFriendsNotInGroup));
 router.post("/:groupId/toggle-require-approval", wrapperRequestHandle(groupController.toggleRequireApproval));
+router.post("/:groupId/add-members", wrapperRequestHandle(groupController.addMembers));
 
 export default router;

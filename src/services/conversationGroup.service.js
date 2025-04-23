@@ -7,6 +7,70 @@ import User from "../models/user.model.js";
 import appSocket from "../socketIO.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errorHandler.js";
 // Tạo nhóm mới
+
+
+export const addMembers = async (requesterId, groupId, userIds = []) => {
+    const group = await GroupConversation.findById(groupId);
+    if (!group) throw new BadRequestError("Không tìm thấy nhóm");
+
+    const requester = group.participants.find(p => p.user.toString() === requesterId);
+    if (!requester) throw new ForbiddenError("Bạn không phải là thành viên của nhóm");
+
+    const newMembers = [];
+
+    for (const userId of userIds) {
+        const alreadyInGroup = group.participants.some(p => p.user.toString() === userId);
+        const alreadyInvited = await PendingGroupInvite.findOne({
+            groupId,
+            invitedUser: userId,
+            status: "pending"
+        });
+
+        if (alreadyInGroup || alreadyInvited) continue;
+
+        // Nếu KHÔNG cần duyệt hoặc requester là owner → thêm luôn
+        if (!group.requireApproval || requester.role === "owner") {
+            group.participants.push({
+                user: userId,
+                role: "member",
+                joinedAt: new Date()
+            });
+
+            newMembers.push(userId);
+        } else {
+            // Nếu cần duyệt và requester không phải owner → tạo invite
+            await PendingGroupInvite.create({
+                groupId,
+                invitedUser: userId,
+                invitedBy: requesterId,
+                status: "pending"
+            });
+        }
+    }
+
+    if (newMembers.length > 0) {
+        await group.save();
+
+        // Emit socket tới tất cả thành viên cũ
+        group.participants.forEach(p => {
+            appSocket.emitToUser(p.user.toString(), "group:member-added", {
+                groupId,
+                addedUserIds: newMembers,
+                addedBy: requesterId
+            });
+        });
+    }
+
+    return {
+        message: `Đã thêm ${newMembers.length} thành viên vào nhóm. Còn lại sẽ cần duyệt nếu có.`,
+        added: newMembers.length,
+        invited: userIds.length - newMembers.length
+    };
+};
+
+
+
+
 export const createGroup = async (creatorId, { name, avatar, members = [] }) => {
     // Kiểm tra tổng số thành viên phải >= 3 (bao gồm creator)
     if (members.length < 2) {
