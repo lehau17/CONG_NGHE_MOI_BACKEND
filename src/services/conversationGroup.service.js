@@ -53,7 +53,7 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
 
         // Emit socket tới tất cả thành viên cũ
         group.participants.forEach(p => {
-            appSocket.emitToUser(p.user.toString(), "group:member-added", {
+            appSocket.emitToUser(p.user.toString(), "group:member-added-group", {
                 groupId,
                 addedUserIds: newMembers,
                 addedBy: requesterId
