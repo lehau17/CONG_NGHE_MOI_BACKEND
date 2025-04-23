@@ -67,6 +67,8 @@ export const getMyConversations = async (userId) => {
                 participants: conv.participants.map((pa) => ({
                     deletedAt: pa.deletedAt,
                     ...pa.user,
+                    role: pa.role,
+                    joinedAt: pa.joinedAt,
                 })),
             };
         });
