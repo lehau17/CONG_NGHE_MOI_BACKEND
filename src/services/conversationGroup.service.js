@@ -297,6 +297,12 @@ export const leaveGroup = async (requesterId, groupId) => {
     await group.save();
 
 
+
+    appSocket.emitToRoom(group._id.toString(), 'group:memberLeft', {
+        groupId,
+        leftUserId: requesterId, // ID của người rời nhóm
+    });
+
     // Gửi sự kiện thông báo có người rời nhóm cho tất cả thành viên còn lại
     group.participants.forEach(p => {
         // Sử dụng Socket.IO để gửi sự kiện đến các thành viên còn lại
