@@ -117,7 +117,7 @@ export const createGroup = async (creatorId, { name, avatar, members = [] }) => 
     // Cập nhật nhóm với tin nhắn vừa tạo
     group.lastMessage = message._id;
     await group.save();
-    await new Promise.all([
+    await Promise.all([
         group.populate("participants.user", "fullName avatar phoneNumber _id"),
         message.populate("sender", "fullName avatar phoneNumber _id")])
 
