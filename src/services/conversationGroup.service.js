@@ -1,11 +1,11 @@
-import GroupConversation from "../models/conversationGroup.model.js";
-import PendingGroupInvite from "../models/pendingGroupInvite.model.js"
-import FriendRequest from "../models/friendRequest.model.js";
 import mongoose from "mongoose";
-import { ForbiddenError, NotFoundError, BadRequestError } from "../utils/errorHandler.js";
+import GroupConversation from "../models/conversationGroup.model.js";
+import FriendRequest from "../models/friendRequest.model.js";
 import Message from "../models/message.model.js";
-import User from "../models/user.model.js"
-import appSocket from "../socketIO.js"
+import PendingGroupInvite from "../models/pendingGroupInvite.model.js";
+import User from "../models/user.model.js";
+import appSocket from "../socketIO.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errorHandler.js";
 // Tạo nhóm mới
 export const createGroup = async (creatorId, { name, avatar, members = [] }) => {
     // Kiểm tra tổng số thành viên phải >= 3 (bao gồm creator)
@@ -48,12 +48,15 @@ export const createGroup = async (creatorId, { name, avatar, members = [] }) => 
         createdAt: new Date()
     });
 
+
+
     // Cập nhật nhóm với tin nhắn vừa tạo
     group.lastMessage = message._id;
     await group.save();
 
     // Gửi sự kiện tạo nhóm đến từng thành viên
     allParticipants.forEach(p => {
+        appSocket.joinUserToRoom(p.user.toString(), group._id.toString())
         appSocket.emitToUser(p.user.toString(), 'groupCreated', { group, message });
     });
 
@@ -119,7 +122,7 @@ export const removeMember = async (requesterId, groupId, userId) => {
     if (!group) throw new NotFoundError("Không tìm thấy nhóm");
 
     const requester = group.participants.find(p => p.user.toString() === requesterId);
-    
+
     // Chỉ cho phép owner được xóa thành viên
     if (!requester || requester.role !== "owner") {
         throw new ForbiddenError("Chỉ chủ nhóm (owner) mới có quyền xóa thành viên");
