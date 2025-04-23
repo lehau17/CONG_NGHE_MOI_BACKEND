@@ -3,6 +3,7 @@ import PendingGroupInvite from "../models/pendingGroupInvite.model.js";
 
 import { NotFoundError, BadRequestError } from "../utils/errorHandler.js";
 import appSocket from "../socketIO.js"
+import User from "../models/user.model.js"
 
 export const createInviteService = async ({ groupId, invitedUser, invitedBy }) => {
     const invite = await PendingGroupInvite.create({
@@ -114,7 +115,8 @@ export const getInvitesByGroupService = async (groupId, requesterId) => {
     if (!isOwner) throw new ForbiddenError("Bạn không có quyền xem lời mời của nhóm này");
 
     return await PendingGroupInvite.find({ groupId })
-        .populate("invitedUser", "name avatar")
-        .populate("invitedBy", "name avatar");
+        .populate("invitedUser", "fullName avatar")
+        .populate("invitedBy", "fullName avatar");
+
 };
 
