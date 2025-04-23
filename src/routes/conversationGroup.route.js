@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.use(authenticationMiddleware.run);
 
-router.post("/", wrapperRequestHandle(groupController.createGroup)); 
+router.post("/", wrapperRequestHandle(groupController.createGroup));
 router.post("/:groupId/add-member", wrapperRequestHandle(groupController.addMember));
 router.post("/:groupId/remove-member", wrapperRequestHandle(groupController.removeMember));
 router.delete("/:groupId", wrapperRequestHandle(groupController.deleteGroup));

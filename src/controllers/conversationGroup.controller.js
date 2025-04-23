@@ -1,5 +1,5 @@
 import * as groupService from "../services/conversationGroup.service.js";
-import { SuccessResponse, CreatedResponse } from "../utils/response.js";
+import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
 export const createGroup = async (req, res) => {
     const group = await groupService.createGroup(req.user.user_id, req.body);
@@ -72,10 +72,11 @@ export const updateGroupInfo = async (req, res) => {
 
 export const getFriendsNotInGroup = async (req, res) => {
     const { groupId } = req.params;
-    const currentUserId = req.user._id;
+    const currentUserId = req.user.user_id;
 
     const friends = await groupService.getFriendsNotInGroup(groupId, currentUserId);
-    return res.json(friends);
+    new SuccessResponse(friends, "List mời vào nhóm").response(res);
+
 };
 
 export const toggleRequireApproval = async (req, res) => {
@@ -83,5 +84,5 @@ export const toggleRequireApproval = async (req, res) => {
     const userId = req.user.user_id;
 
     const result = await groupService.toggleRequireApprovalService(groupId, userId);
-    res.json(result);
+    new SuccessResponse(result, "OKE").response(res);
 };
