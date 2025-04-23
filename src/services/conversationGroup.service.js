@@ -371,7 +371,7 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
     // 5. Trả thông tin chi tiết
     const availableFriends = await User.find({
         _id: { $in: availableFriendIds }
-    }).select("_id username avatar");
+    })
 
     return availableFriends;
 };
