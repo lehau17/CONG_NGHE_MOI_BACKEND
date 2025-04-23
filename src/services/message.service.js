@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
-import ConversationGroup from "../models/conversationGroup.model.js"; 
+import ConversationGroup from "../models/conversationGroup.model.js";
 import Message from "../models/message.model.js";
 import appSocket from "../socketIO.js";
 import { BadRequestError } from "../utils/errorHandler.js";
@@ -32,8 +32,7 @@ export const createMessage = async (body, me_id) => {
 
     const [populatedMessage, populatedConversation] = await Promise.all(
         [(await message.populate("sender", "_id fullName phoneNumber avatar")).populate("replyTo"),
-        Conversation.findById(body.conversationId)
-            .populate("participants.user", "_id fullName avatar")
+        conversation.populate("participants.user", "_id fullName avatar")
             .populate({
                 path: "lastMessage",
                 populate: {
@@ -48,26 +47,65 @@ export const createMessage = async (body, me_id) => {
 
 
     if (populatedConversation?.participants) {
-        populatedConversation.participants.forEach((participant) => {
-            const isMe = participant.user._id.toString() === me_id.toString();
-            const sender = populatedConversation?.lastMessage?.sender;
+        const sender = populatedConversation?.lastMessage?.sender;
 
-            appSocket.emitToUser(participant.user._id.toString(), "update-chat-list", {
+        // Trường hợp là nhóm thì emit 1 lần cho cả room
+        if (isGroup) {
+            appSocket.emitToRoom(conversation._id.toString(), "update-chat-list", {
                 ...populatedConversation,
-                participants: populatedConversation.participants.map(e => { return { deletedAt: e.deletedAt, ...e.user } }),
+                participants: populatedConversation.participants.map(e => {
+                    return { deletedAt: e.deletedAt, ...e.user };
+                }),
                 lastMessage: {
                     ...populatedConversation.lastMessage,
                     sender: {
                         ...sender,
-                        label: isMe ? "Bạn" : (sender?.fullName?.trim().split(" ").pop() || "Người lạ"),
+                        label: sender?.fullName?.trim().split(" ").pop() || "Người lạ",
                     }
                 }
             });
-        });
+        } else {
+            // Trường hợp chat 1-1 thì gửi riêng từng người
+            populatedConversation.participants.forEach((participant) => {
+                const isMe = participant.user._id.toString() === me_id.toString();
+
+                appSocket.emitToUser(participant.user._id.toString(), "update-chat-list", {
+                    ...populatedConversation,
+                    participants: populatedConversation.participants.map(e => {
+                        return { deletedAt: e.deletedAt, ...e.user };
+                    }),
+                    lastMessage: {
+                        ...populatedConversation.lastMessage,
+                        sender: {
+                            ...sender,
+                            label: isMe ? "Bạn" : (sender?.fullName?.trim().split(" ").pop() || "Người lạ"),
+                        }
+                    }
+                });
+            });
+        }
     }
 
 
+
     return populatedMessage;
+};
+
+
+export const sendEmoji = async (messageId, typeEmoji, userId) => {
+    const newMessage = await Message.findByIdAndUpdate(messageId, {
+        $addToSet: { [`emoji.${typeEmoji}`]: userId }
+    });
+    return newMessage
+};
+
+
+export const revokeEmoji = async (messageId, typeEmoji, userId) => {
+    const newMessage = await Message.findByIdAndUpdate(messageId, {
+        $pull: { [`emoji.${typeEmoji}`]: userId }
+    });
+    return newMessage
+
 };
 
 
@@ -82,7 +120,7 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
         isGroup = true;
     }
 
-    if (!conversation) throw new Error("Conversation not found");
+    if (!conversation) throw new BadRequestError("Conversation not found");
 
     // 3. Tìm participant tương ứng và thời điểm deletedAt
     const participant = conversation.participants.find(p =>

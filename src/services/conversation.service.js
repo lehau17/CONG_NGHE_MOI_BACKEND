@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
-import ConversationGroup from "../models/conversationGroup.model.js"; 
+import ConversationGroup from "../models/conversationGroup.model.js";
 import Message from "../models/message.model.js";
-import appSocket from "../socketIO.js"
+import appSocket from "../socketIO.js";
 export const createConversation = async (userId, targetUserId) => {
     const sortedIds = [userId, targetUserId].sort();
 
@@ -25,80 +25,56 @@ export const createConversation = async (userId, targetUserId) => {
     });
 };
 
+
 export const getMyConversations = async (userId) => {
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // 1. Lấy danh sách cuộc trò chuyện cá nhân
-    const individualConversations = await Conversation.find({
-        participants: {
-            $elemMatch: { user: userObjectId }
-        }
-    })
-        .populate("participants.user", "fullName avatar _id")
-        .populate({
-            path: "lastMessage",
-            populate: {
-                path: "sender",
-                select: "fullName avatar _id phoneNumber",
-            },
-        })
-        .lean();
+    const [individualConversations, groupConversations] = await Promise.all([
+        Conversation.find({ participants: { $elemMatch: { user: userObjectId } } })
+            .populate("participants.user", "fullName avatar _id")
+            .populate({
+                path: "lastMessage",
+                populate: {
+                    path: "sender",
+                    select: "fullName avatar _id phoneNumber",
+                },
+            })
+            .lean(),
+        ConversationGroup.find({ participants: { $elemMatch: { user: userObjectId } } })
+            .populate("participants.user", "fullName avatar _id")
+            .populate({
+                path: "lastMessage",
+                populate: {
+                    path: "sender",
+                    select: "fullName avatar _id phoneNumber",
+                },
+            })
+            .lean(),
+    ]);
 
-    // Gắn nhãn + format participants
-    const formattedIndividuals = individualConversations.map((conv) => {
-        const sender = conv.lastMessage?.sender;
-        if (sender) {
-            const isSelf = sender._id.toString() === userId.toString();
-            sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
-        }
+    // Hàm format chung
+    const formatConversations = (list, type) =>
+        list.map((conv) => {
+            const sender = conv.lastMessage?.sender;
+            if (sender) {
+                const isSelf = sender._id.toString() === userId.toString();
+                sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
+            }
 
-        return {
-            ...conv,
-            type: "single",
-            participants: conv.participants.map(pa => ({
-                deletedAt: pa.deletedAt,
-                ...pa.user
-            }))
-        };
-    });
+            return {
+                ...conv,
+                type,
+                participants: conv.participants.map((pa) => ({
+                    deletedAt: pa.deletedAt,
+                    ...pa.user,
+                })),
+            };
+        });
 
-    // 2. Lấy danh sách cuộc trò chuyện nhóm
-    const groupConversations = await ConversationGroup.find({
-        participants: {
-            $elemMatch: { user: userObjectId }
-        }
-    })
-        .populate("participants.user", "fullName avatar _id")
-        .populate({
-            path: "lastMessage",
-            populate: {
-                path: "sender",
-                select: "fullName avatar _id phoneNumber",
-            },
-        })
-        .lean();
+    const formattedIndividuals = formatConversations(individualConversations, "single");
+    const formattedGroups = formatConversations(groupConversations, "group");
 
-    // Gắn nhãn + format participants
-    const formattedGroups = groupConversations.map((conv) => {
-        const sender = conv.lastMessage?.sender;
-        if (sender) {
-            const isSelf = sender._id.toString() === userId.toString();
-            sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
-        }
-
-        return {
-            ...conv,
-            type: "group",
-            participants: conv.participants.map(pa => ({
-                deletedAt: pa.deletedAt,
-                ...pa.user
-            }))
-        };
-    });
-
-    // 3. Trả về mảng gộp cả 2 loại
     return [...formattedIndividuals, ...formattedGroups].sort((a, b) => {
-        // Sắp xếp theo thời gian tin nhắn cuối cùng (mới nhất lên đầu)
         const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(0);
         const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt) : new Date(0);
         return bTime - aTime;
@@ -131,7 +107,7 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
         });
         // appSocket.joinUserToRoom(userId, conversation._id)
         // appSocket.joinUserToRoom(targetUserId, conversation._id)
-        appSocket.emit("newConversation", { conversationId: conversation._id, participants });  
+        appSocket.emit("newConversation", { conversationId: conversation._id, participants });
     }
 
     const fullConversation = await Conversation.findById(conversation._id)

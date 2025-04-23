@@ -11,8 +11,6 @@ export const sendMessage = async (req, res, next) => {
         sender: senderId,
     }, req.user.user_id);
 
-    // 2. Gửi realtime theo 2 cách:
-    //  a) Emit đến tất cả socket đã join room (room = conversationId)
     appSocket.emitToRoom(req.body.conversationId, "new-message", message);
     new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
 

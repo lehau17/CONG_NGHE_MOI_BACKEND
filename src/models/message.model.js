@@ -30,10 +30,15 @@ const messageSchema = new mongoose.Schema({
             name: String,
             size: Number,
             mimeType: String,
-            duration: Number,// nếu là audio/video
+            duration: Number,
             url: String
         }
     ],
+    emoji: {
+        type: Map,
+        of: [mongoose.Schema.Types.ObjectId],
+        default: {}
+    },
     isRead: {
         type: Boolean,
         default: false
