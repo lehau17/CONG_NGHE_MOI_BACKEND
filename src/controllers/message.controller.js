@@ -1,3 +1,4 @@
+import Message from "../models/message.model.js";
 import * as messageService from "../services/message.service.js";
 import appSocket from "../socketIO.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
@@ -42,6 +43,42 @@ export const recallMessage = async (req, res, next) => {
     appSocket.emitToRoom(updatedMessage.conversationId.toString(), "message-recalled", updatedMessage);
 
     new SuccessResponse(updatedMessage, "Thu hồi tin nhắn thành công").response(res);
+};
+
+
+export const sendEmoji = async (req, res, next) => {
+    const { messageId } = req.params;
+    const { typeEmoji } = req.body;
+    const userId = req.user.user_id;
+
+    if (!typeEmoji) throw new BadRequestError("Thiếu typeEmoji");
+
+    const updated = await Message.findByIdAndUpdate(
+        messageId,
+        { $addToSet: { [`emoji.${typeEmoji}`]: userId } },
+        { new: true }
+    ).populate("sender", "_id fullName avatar");
+
+    new SuccessResponse(updated, "Success").response(res);
+
+};
+
+
+export const revokeEmoji = async (req, res, next) => {
+    const { messageId } = req.params;
+    const { typeEmoji } = req.body;
+    const userId = req.user.user_id;
+
+    if (!typeEmoji) throw new BadRequestError("Thiếu typeEmoji");
+
+    const updated = await Message.findByIdAndUpdate(
+        messageId,
+        { $pull: { [`emoji.${typeEmoji}`]: userId } },
+        { new: true }
+    ).populate("sender", "_id fullName avatar");
+
+    new SuccessResponse(updated, "Success").response(res);
+
 };
 
 
