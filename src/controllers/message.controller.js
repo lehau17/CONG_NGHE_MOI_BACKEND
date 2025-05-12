@@ -59,9 +59,12 @@ export const sendEmoji = async (req, res, next) => {
         { new: true }
     ).populate("sender", "_id fullName avatar");
 
-    new SuccessResponse(updated, "Success").response(res);
+    // ✅ Emit socket về room
+    appSocket.emitToRoom(updated.conversationId.toString(), "emoji-updated", updated);
 
+    new SuccessResponse(updated, "Success").response(res);
 };
+
 
 
 export const revokeEmoji = async (req, res, next) => {
@@ -77,8 +80,10 @@ export const revokeEmoji = async (req, res, next) => {
         { new: true }
     ).populate("sender", "_id fullName avatar");
 
-    new SuccessResponse(updated, "Success").response(res);
+    // ✅ Emit socket về room
+    appSocket.emitToRoom(updated.conversationId.toString(), "emoji-updated", updated);
 
+    new SuccessResponse(updated, "Success").response(res);
 };
 
 
