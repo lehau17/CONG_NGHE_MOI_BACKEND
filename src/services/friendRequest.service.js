@@ -80,8 +80,8 @@ export const getFriendsList = async (userId) => {
         ]
     })
         .populate("from", "fullName avatar")  // Lấy thông tin người gửi
-        .populate("to", "fullName avatar");   // Lấy thông tin người nhận
-
+        .populate("to", "fullName avatar")  // Lấy thông tin người nhận
+        .lean()
     // Lọc ra danh sách bạn bè từ các yêu cầu kết bạn đã chấp nhận
     const friends = requests.map(request => {
         if (request.from._id.toString() === userId.toString()) {
