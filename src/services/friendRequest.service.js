@@ -98,3 +98,11 @@ export const getSentFriendRequests = async (from, status = "pending") => {
     return requests;
 };
 
+
+
+export const deleteFriendShip = async (id) => {
+    const result = await FriendRequest.findByIdAndDelete(id)
+    appSocket.emitToUser(result.from.toString(), "delete-friendship", result._id)
+    appSocket.emitToUser(result.to.toString(), "delete-friendship", result._id)
+    return result
+}

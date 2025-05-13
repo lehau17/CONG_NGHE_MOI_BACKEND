@@ -35,14 +35,16 @@ export const getFriends = async (req, res, next) => {
 };
 
 export const getSentFriendRequests = async (req, res, next) => {
-    try {
-        // Lấy danh sách lời mời kết bạn đã gửi với trạng thái "pending"
-        const result = await friendService.getSentFriendRequests(req.user.user_id);
+    // Lấy danh sách lời mời kết bạn đã gửi với trạng thái "pending"
+    const result = await friendService.getSentFriendRequests(req.user.user_id);
 
-        // Trả về phản hồi với danh sách lời mời kết bạn đã gửi
-        new SuccessResponse(result, "Danh sách lời mời kết bạn đã gửi").response(res);
-    } catch (error) {
-        next(error);
-    }
+    // Trả về phản hồi với danh sách lời mời kết bạn đã gửi
+    new SuccessResponse(result, "Danh sách lời mời kết bạn đã gửi").response(res);
+
 };
 
+export const deleteFriendShip = async (req, res, next) => {
+    const result = await friendService.deleteFriendShip(req.user.user_id);
+    new SuccessResponse(result, "Huỷ bạn bè thành cồng").response(res);
+
+}
