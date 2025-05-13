@@ -58,9 +58,17 @@ export const getFriendRequests = async (userId, status = "pending") => {
     };
 
     const requests = await FriendRequest.find(optionFind)
-        .populate("from", "fullName avatar");
+        .populate("from", "fullName avatar")
+        .populate("to", "fullName avatar")
 
-    return requests;
+    const friends = requests.map(request => {
+        if (request.from._id.toString() === userId.toString()) {
+            return request.to;
+        }
+        return request.from;
+    });
+
+    return friends;
 };
 
 export const getFriendsList = async (userId) => {
@@ -77,9 +85,9 @@ export const getFriendsList = async (userId) => {
     // Lọc ra danh sách bạn bè từ các yêu cầu kết bạn đã chấp nhận
     const friends = requests.map(request => {
         if (request.from._id.toString() === userId.toString()) {
-            return request.to;
+            return { ...request.to, fs_id: request._id };
         }
-        return request.from;
+        return { ...request.from, fs_id: request._id }
     });
 
     return friends;
@@ -101,7 +109,9 @@ export const getSentFriendRequests = async (from, status = "pending") => {
 
 
 export const deleteFriendShip = async (id) => {
+    console.log("check ID", id)
     const result = await FriendRequest.findByIdAndDelete(id)
+    console.log("check result:>>>", result)
     if (result) {
         appSocket.emitToUser(result.from.toString(), "delete-friendship", result._id)
         appSocket.emitToUser(result.to.toString(), "delete-friendship", result._id)
