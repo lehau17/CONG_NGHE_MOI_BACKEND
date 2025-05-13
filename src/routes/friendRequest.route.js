@@ -12,6 +12,6 @@ router.put("/accept/:id", authenticationMiddleware.run, wrapperRequestHandle(con
 router.put("/reject/:id", authenticationMiddleware.run, wrapperRequestHandle(controller.rejectRequest));
 router.get("/friends", authenticationMiddleware.run, wrapperRequestHandle(controller.getFriends));
 router.get("/sent", authenticationMiddleware.run, wrapperRequestHandle(controller.getSentFriendRequests));
-router.delete("/", authenticationMiddleware.run, wrapperRequestHandle(controller.deleteFriendShip));
+router.delete("/:id", authenticationMiddleware.run, wrapperRequestHandle(controller.deleteFriendShip));
 
 export default router;

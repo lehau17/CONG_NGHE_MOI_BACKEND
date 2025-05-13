@@ -44,7 +44,8 @@ export const getSentFriendRequests = async (req, res, next) => {
 };
 
 export const deleteFriendShip = async (req, res, next) => {
-    const result = await friendService.deleteFriendShip(req.user.user_id);
+    const { id } = req.params
+    const result = await friendService.deleteFriendShip(id);
     new SuccessResponse(result, "Huỷ bạn bè thành cồng").response(res);
 
 }
