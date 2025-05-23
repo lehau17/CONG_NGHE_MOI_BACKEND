@@ -60,15 +60,10 @@ export const getFriendRequests = async (userId, status = "pending") => {
     const requests = await FriendRequest.find(optionFind)
         .populate("from", "fullName avatar")
         .populate("to", "fullName avatar")
+    
+    
 
-    const friends = requests.map(request => {
-        if (request.from._id.toString() === userId.toString()) {
-            return request.to;
-        }
-        return request.from;
-    });
-
-    return friends;
+    return requests;
 };
 
 export const getFriendsList = async (userId) => {
