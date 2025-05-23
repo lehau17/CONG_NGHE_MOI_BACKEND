@@ -453,14 +453,23 @@ export const getFriendsNotInGroup = async (groupId, currentUserId) => {
 export const toggleRequireApprovalService = async (groupId, userId) => {
     const group = await GroupConversation.findById(groupId);
     if (!group) throw new NotFoundError("Không tìm thấy nhóm.");
+
     const isOwner = group.participants.some(
         p => p.user.toString() === userId.toString() && p.role === "owner"
     );
 
     if (!isOwner) throw new ForbiddenError("Chỉ nhóm trưởng mới có quyền thay đổi yêu cầu duyệt.");
 
+    // Đảo ngược trạng thái requireApproval
     group.requireApproval = !group.requireApproval;
     await group.save();
+
+    // Emit sự kiện tới tất cả thành viên trong nhóm
+    appSocket.emitToRoom(groupId.toString(), "require-approval-toggled", {
+        groupId,
+        requireApproval: group.requireApproval,
+        message: `Nhóm đã ${group.requireApproval ? "bật" : "tắt"} yêu cầu duyệt thành viên.`,
+    });
 
     return {
         success: true,
@@ -468,3 +477,4 @@ export const toggleRequireApprovalService = async (groupId, userId) => {
         requireApproval: group.requireApproval,
     };
 };
+
