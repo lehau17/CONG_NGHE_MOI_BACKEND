@@ -54,17 +54,27 @@ export const rejectFriendRequest = async (requestId) => {
 export const getFriendRequests = async (userId, status = "pending") => {
     const optionFind = {
         to: userId,
-        ...(status !== "all" && { status }) // chỉ thêm `status` nếu khác "all"
+        ...(status !== "all" && { status }) // chỉ thêm status nếu khác "all"
     };
 
     const requests = await FriendRequest.find(optionFind)
         .populate("from", "fullName avatar")
-        .populate("to", "fullName avatar")
-    
-    
+        .populate("to", "fullName avatar");
 
-    return requests;
+    const friends = requests.map(request => {
+        const otherUser = request.from._id.toString() === userId.toString()
+            ? request.to
+            : request.from;
+
+        return {
+            requestId: request._id,
+            user: otherUser
+        };
+    });
+
+    return friends;
 };
+
 
 export const getFriendsList = async (userId) => {
     // Lấy các yêu cầu kết bạn với trạng thái là 'accepted'
