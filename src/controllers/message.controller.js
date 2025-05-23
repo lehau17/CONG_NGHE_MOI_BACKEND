@@ -89,9 +89,9 @@ export const revokeEmoji = async (req, res, next) => {
 
 export const forwardMessage = async (req, res, next) => {
     const { messageId, targetConversationIds } = req.body;
-
+    const me_id = req.user.user_id;
     try {
-        const forwardedMessage = await messageService.forwardManyMessage(messageId, targetConversationIds);
+        const forwardedMessage = await messageService.forwardManyMessage(messageId, targetConversationIds, me_id);
         new CreatedResponse(forwardedMessage, "Tin nhắn đã được chuyển tiếp thành công").response(res);
     } catch (error) {
         next(error);
