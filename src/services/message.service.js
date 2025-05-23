@@ -249,7 +249,7 @@ export const forwardManyMessage = async (messageId, targetConversationIds, me_id
         targetConversationIds.map(async (conversationId) => {
             const forwardedMessage = await Message.create({
                 conversationId,
-                sender: originalMessage.sender,
+                sender: me_id,
                 content: originalMessage.content,
                 type: originalMessage.type,
                 fileMeta: originalMessage.fileMeta,
