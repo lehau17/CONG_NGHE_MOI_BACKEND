@@ -114,12 +114,29 @@ export const getSentFriendRequests = async (from, status = "pending") => {
 
 
 export const deleteFriendShip = async (id) => {
-    console.log("check ID", id)
-    const result = await FriendRequest.findByIdAndDelete(id)
-    console.log("check result:>>>", result)
-    if (result) {
-        appSocket.emitToUser(result.from.toString(), "delete-friendship", result._id)
-        appSocket.emitToUser(result.to.toString(), "delete-friendship", result._id)
+    const request = await FriendRequest.findById(id);
+
+    if (!request || request.status !== "accepted") {
+        throw new BadRequestError("Quan hệ bạn bè không tồn tại hoặc chưa được chấp nhận");
     }
-    return result
-}
+
+    // Xóa khỏi cơ sở dữ liệu
+    await FriendRequest.findByIdAndDelete(id);
+
+    // Gửi socket đến cả hai phía
+    appSocket.emitToUser(request.from.toString(), "friend-removed", {
+        friendId: request.to.toString(),
+        message: "Bạn đã bị hủy kết bạn"
+    });
+
+    appSocket.emitToUser(request.to.toString(), "friend-removed", {
+        friendId: request.from.toString(),
+        message: "Bạn đã bị hủy kết bạn"
+    });
+
+    return {
+        message: "Huỷ bạn bè thành công",
+        deletedId: id
+    };
+};
+
