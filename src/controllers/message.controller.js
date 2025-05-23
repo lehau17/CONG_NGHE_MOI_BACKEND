@@ -100,6 +100,17 @@ export const forwardMessage = async (req, res, next) => {
 
 
 export const forwardManyMessage = async (req, res, next) => {
-    const { messageId, targetConversationIds } = req.body
-    new SuccessResponse(await messageService.forwardManyMessage(messageId, targetConversationIds, req.user.user_id)).response(res)
-}
+    const { messageId, targetConversationIds } = req.body;
+
+    try {
+        const result = await messageService.forwardManyMessage(
+            messageId,
+            targetConversationIds,
+            req.user.user_id
+        );
+        new SuccessResponse(result, "Tin nhắn đã được chuyển tiếp thành công").response(res);
+    } catch (error) {
+        next(error); // đảm bảo middleware xử lý lỗi sẽ hoạt động
+    }
+};
+
