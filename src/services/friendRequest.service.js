@@ -116,9 +116,7 @@ export const getSentFriendRequests = async (from, status = "pending") => {
 export const deleteFriendShip = async (id) => {
     const request = await FriendRequest.findById(id);
 
-    if (!request || request.status !== "accepted") {
-        throw new BadRequestError("Quan hệ bạn bè không tồn tại hoặc chưa được chấp nhận");
-    }
+    
 
     // Xóa khỏi cơ sở dữ liệu
     await FriendRequest.findByIdAndDelete(id);
