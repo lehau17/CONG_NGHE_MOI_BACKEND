@@ -48,8 +48,32 @@ export const acceptFriendRequest = async (requestId) => {
 };
 
 export const rejectFriendRequest = async (requestId) => {
-    return await FriendRequest.findByIdAndDelete(new mongoose.Types.ObjectId(requestId))
+    const request = await FriendRequest.findById(requestId)
+        .populate("from", "fullName avatar")
+        .populate("to", "fullName avatar");
+
+    if (!request) throw new BadRequestError("Request not found");
+
+    // Xóa yêu cầu kết bạn khỏi DB
+    await FriendRequest.findByIdAndDelete(requestId);
+
+    // Gửi socket đến người gửi lời mời kết bạn (from)
+    const socketIds = appSocket.connectedUsers.get(request.from._id.toString()) || [];
+    socketIds.forEach(socketId => {
+        appSocket.io.to(socketId).emit("friend-request-rejected", {
+            message: `${request.to.fullName} đã từ chối lời mời kết bạn`,
+            user: request.to,
+            requestId: request._id
+        });
+    });
+
+    return {
+        message: "Đã từ chối lời mời kết bạn",
+        requestId
+    };
 };
+
+
 
 export const getFriendRequests = async (userId, status = "pending") => {
     const optionFind = {
