@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Conversation from "../models/conversation.model.js";
-import ConversationGroup from "../models/conversationGroup.model.js";
+import { default as ConversationGroup, default as GroupConversation } from "../models/conversationGroup.model.js";
 import Message from "../models/message.model.js";
 import appSocket from "../socketIO.js";
 export const createConversation = async (userId, targetUserId) => {
@@ -129,3 +129,41 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
     return { ...fullConversation.toObject(), messages };
 };
 
+
+
+export const countSharedGroupConversations = async (userId1, userId2) => {
+    const count = await GroupConversation.countDocuments({
+        type: "group",
+        participants: {
+            $all: [
+                { $elemMatch: { user: userId1, deletedAt: null } },
+                { $elemMatch: { user: userId2, deletedAt: null } },
+            ],
+        },
+    });
+
+    return count;
+};
+
+
+
+export const getMediaMessages = async (conversationId) => {
+    return await Message.find({
+        conversationId,
+        type: { $in: ["image", "video"] },
+        isRevoke: false, // loại bỏ tin đã thu hồi nếu cần
+    })
+        .sort({ createdAt: -1 })
+        .select("type content fileMeta sender createdAt");
+};
+
+
+export const getFileMessages = async (conversationId) => {
+    return await Message.find({
+        conversationId,
+        type: "file",
+        isRevoke: false,
+    })
+        .sort({ createdAt: -1 })
+        .select("type content fileMeta sender createdAt");
+};

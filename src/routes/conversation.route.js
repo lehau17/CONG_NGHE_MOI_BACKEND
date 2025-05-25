@@ -1,5 +1,6 @@
 import express from "express";
 import * as conversationController from "../controllers/conversation.controller.js";
+import * as groupController from "../controllers/conversationGroup.controller.js";
 import authenticationMiddleware from "../middlewares/authentication.middleware.js";
 import { wrapperRequestHandle } from "../utils/wrapperRequestHandler.js";
 
@@ -19,5 +20,8 @@ conversationRouter.get("/:id",
 conversationRouter.post("/detail",
     authenticationMiddleware.run,
     wrapperRequestHandle(conversationController.getOrCreateConversationDetail))
+conversationRouter.get("/:id/infomation",
+    authenticationMiddleware.run,
+    wrapperRequestHandle(groupController.getConversationDetail))
 
 export default conversationRouter;
