@@ -1,9 +1,9 @@
 import express from "express";
 import {
-    createInvite,
     acceptInvite,
-    rejectInvite,
-    getInvitesByGroup
+    createInvite,
+    getInvitesByGroup,
+    rejectInvite
 } from "../controllers/pendingGroupInvite.controller.js";
 import authenticationMiddleware from "../middlewares/authentication.middleware.js";
 import { wrapperRequestHandle } from "../utils/wrapperRequestHandler.js";
