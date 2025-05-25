@@ -107,9 +107,9 @@ export const getOrCreateFullConversation = async (userId, targetUserId) => {
             participants,
             participantIds: sortedIds
         });
-        // appSocket.joinUserToRoom(userId, conversation._id)
-        // appSocket.joinUserToRoom(targetUserId, conversation._id)
-        appSocket.emit("newConversation", { conversationId: conversation._id, participants });
+        appSocket.joinUserToRoom(userId, conversation._id)
+        appSocket.joinUserToRoom(targetUserId, conversation._id)
+        appSocket.emitToRoom(conversation._id, "newConversation", { conversationId: conversation._id, participants });
     }
 
     const fullConversation = await Conversation.findById(conversation._id)
