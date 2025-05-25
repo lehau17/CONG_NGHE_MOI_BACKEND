@@ -122,8 +122,9 @@ export const toggleEmoji = async (messageId, typeEmoji, userId) => {
     const message = await Message.findById(messageId);
 
     if (!message) throw new Error("Message not found");
+    console.log("check message", message)
+    const emojiList = message.emoji?.get(typeEmoji) || [];
 
-    const emojiList = message.emoji?.[typeEmoji] || [];
 
     const hasReacted = emojiList.includes(userId);
 
