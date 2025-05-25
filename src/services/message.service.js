@@ -134,7 +134,7 @@ export const toggleEmoji = async (messageId, typeEmoji, userId) => {
             ? { $pull: { [`emoji.${typeEmoji}`]: userId } }  // 👈 Thu hồi
             : { $addToSet: { [`emoji.${typeEmoji}`]: userId } }, // 👈 Thả emoji
         { new: true } // Trả về document mới sau update
-    );
+    ).populate("sender", "_id fullName avatar");
 
     return updatedMessage;
 };
