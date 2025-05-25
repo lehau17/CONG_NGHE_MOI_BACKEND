@@ -15,7 +15,7 @@ export const sendMessage = async (req, res, next) => {
     appSocket.emitToRoom(req.body.conversationId, "new-message", message);
     new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
 
-}; toggle
+};
 
 
 export const toggle = async (req, res, next) => {
