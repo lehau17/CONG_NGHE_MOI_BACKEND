@@ -1,6 +1,7 @@
 import Message from "../models/message.model.js";
 import * as messageService from "../services/message.service.js";
 import appSocket from "../socketIO.js";
+import { BadRequestError } from "../utils/errorHandler.js";
 import { CreatedResponse, SuccessResponse } from "../utils/response.js";
 
 export const sendMessage = async (req, res, next) => {
