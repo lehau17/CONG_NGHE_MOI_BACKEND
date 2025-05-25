@@ -142,19 +142,23 @@ export const toggleEmoji = async (messageId, typeEmoji, userId) => {
 
 
 export const removeAllEmojiByUser = async (messageId, userId) => {
+    console.log("check data", messageId, userId)
     const message = await Message.findById(messageId);
 
     if (!message) throw new Error("Message not found");
 
     const emoji = message.emoji || {};
+    console.log("check emojis", emoji)
 
     // Tạo update object để pull userId khỏi từng type
     const pullOps = {};
 
-    for (const type of Object.keys(emoji)) {
+    for (const type of emoji.keys()) {
+
         pullOps[`emoji.${type}`] = userId;
     }
 
+    console.log("check pull orgs:>>>", pullOps)
     const updatedMessage = await Message.findByIdAndUpdate(
         messageId,
         { $pull: pullOps },
