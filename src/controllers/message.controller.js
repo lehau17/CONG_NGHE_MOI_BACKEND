@@ -19,6 +19,20 @@ export const sendMessage = async (req, res, next) => {
 };
 
 
+
+
+
+export const revokeAllEmojiForUser = async (req, res, next) => {
+    const { messageId } = req.params;
+    const userId = req.user.user_id
+
+    const updated = await messageService.removeAllEmojiByUser(messageId, userId)
+    // ✅ Emit socket về room
+    appSocket.emitToRoom(updated.conversationId.toString(), "emoji-updated", updated);
+
+    new SuccessResponse(updated, "Success").response(res);
+};
+
 export const toggle = async (req, res, next) => {
     const { messageId } = req.params;
     const { typeEmoji } = req.body;

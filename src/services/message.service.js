@@ -141,6 +141,31 @@ export const toggleEmoji = async (messageId, typeEmoji, userId) => {
 
 
 
+export const removeAllEmojiByUser = async (messageId, userId) => {
+    const message = await Message.findById(messageId);
+
+    if (!message) throw new Error("Message not found");
+
+    const emoji = message.emoji || {};
+
+    // Tạo update object để pull userId khỏi từng type
+    const pullOps = {};
+
+    for (const type of Object.keys(emoji)) {
+        pullOps[`emoji.${type}`] = userId;
+    }
+
+    const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        { $pull: pullOps },
+        { new: true }
+    ).populate("sender", "_id fullName avatar");
+
+    return updatedMessage;
+};
+
+
+
 
 export const getMessagesByConversation = async (conversationId, currentUserId) => {
     // 1. Tìm trong Conversation
