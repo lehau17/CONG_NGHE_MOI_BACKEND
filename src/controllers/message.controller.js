@@ -15,6 +15,21 @@ export const sendMessage = async (req, res, next) => {
     appSocket.emitToRoom(req.body.conversationId, "new-message", message);
     new CreatedResponse(message, "Gửi tin nhắn thành công").response(res);
 
+}; toggle
+
+
+export const toggle = async (req, res, next) => {
+    const { messageId } = req.params;
+    const { typeEmoji } = req.body;
+    const userId = req.user.user_id;
+
+    if (!typeEmoji) throw new BadRequestError("Thiếu typeEmoji");
+
+    const updated = await messageService.toggleEmoji(messageId, typeEmoji, userId)
+    // ✅ Emit socket về room
+    appSocket.emitToRoom(updated.conversationId.toString(), "emoji-updated", updated);
+
+    new SuccessResponse(updated, "Success").response(res);
 };
 
 export const getConversationMessages = async (req, res, next) => {

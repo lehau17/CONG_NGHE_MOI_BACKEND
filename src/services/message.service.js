@@ -118,6 +118,28 @@ export const revokeEmoji = async (messageId, typeEmoji, userId) => {
 
 };
 
+export const toggleEmoji = async (messageId, typeEmoji, userId) => {
+    const message = await Message.findById(messageId);
+
+    if (!message) throw new Error("Message not found");
+
+    const emojiList = message.emoji?.[typeEmoji] || [];
+
+    const hasReacted = emojiList.includes(userId);
+
+    const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        hasReacted
+            ? { $pull: { [`emoji.${typeEmoji}`]: userId } }  // 👈 Thu hồi
+            : { $addToSet: { [`emoji.${typeEmoji}`]: userId } }, // 👈 Thả emoji
+        { new: true } // Trả về document mới sau update
+    );
+
+    return updatedMessage;
+};
+
+
+
 
 export const getMessagesByConversation = async (conversationId, currentUserId) => {
     // 1. Tìm trong Conversation
@@ -129,7 +151,7 @@ export const getMessagesByConversation = async (conversationId, currentUserId) =
     if (!conversation) {
         const group = await ConversationGroup.findById(conversationId).select("participants");
         if (!group) throw new Error("Conversation not found");
-        
+
         conversation = group;
         isGroup = true;
 

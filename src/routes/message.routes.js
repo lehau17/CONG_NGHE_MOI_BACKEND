@@ -15,6 +15,8 @@ messageRouter.put("/recall/:messageId", wrapperRequestHandle(messageController.r
 messageRouter.post("/forward", wrapperRequestHandle(messageController.forwardMessage));
 
 messageRouter.post("/:messageId/emoji", wrapperRequestHandle(messageController.sendEmoji));
+messageRouter.put("/:messageId/emoji/toggle", wrapperRequestHandle(messageController.toggle));
+
 messageRouter.delete("/:messageId/emoji", wrapperRequestHandle(messageController.revokeEmoji));
 
 export default messageRouter;
