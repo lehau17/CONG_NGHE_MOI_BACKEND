@@ -17,7 +17,7 @@ messageRouter.post("/forward", wrapperRequestHandle(messageController.forwardMes
 messageRouter.post("/:messageId/emoji", wrapperRequestHandle(messageController.sendEmoji));
 messageRouter.put("/:messageId/emoji/toggle", wrapperRequestHandle(messageController.toggle));
 
+messageRouter.delete("/:messageId/emoji-all", wrapperRequestHandle(messageController.revokeAllEmojiForUser));
 messageRouter.delete("/:messageId/emoji", wrapperRequestHandle(messageController.revokeEmoji));
-messageRouter.delete("/:messageId/emoji/all", wrapperRequestHandle(messageController.revokeEmoji));
 
 export default messageRouter;
