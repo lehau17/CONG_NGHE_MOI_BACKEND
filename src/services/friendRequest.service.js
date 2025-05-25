@@ -92,7 +92,8 @@ export const getFriendRequests = async (userId, status = "pending") => {
 
         return {
             requestId: request._id,
-            user: otherUser
+            user: otherUser,
+            createdAt: request.createdAt
         };
     });
 
