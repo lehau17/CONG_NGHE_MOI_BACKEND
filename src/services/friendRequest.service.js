@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import FriendRequest from "../models/friendRequest.model.js";
 import appSocket from "../socketIO.js";
 import { BadRequestError } from "../utils/errorHandler.js";
@@ -82,8 +81,9 @@ export const getFriendRequests = async (userId, status = "pending") => {
     };
 
     const requests = await FriendRequest.find(optionFind)
-        .populate("from", "fullName avatar")
-        .populate("to", "fullName avatar");
+        .populate("from", "_id fullName avatar")
+        .populate("to", "_id fullName avatar")
+
 
     const friends = requests.map(request => {
         const otherUser = request.from._id.toString() === userId.toString()
@@ -140,7 +140,7 @@ export const getSentFriendRequests = async (from, status = "pending") => {
 export const deleteFriendShip = async (id) => {
     const request = await FriendRequest.findById(id);
 
-    
+
 
     // Xóa khỏi cơ sở dữ liệu
     await FriendRequest.findByIdAndDelete(id);

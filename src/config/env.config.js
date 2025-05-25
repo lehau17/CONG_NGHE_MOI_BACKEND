@@ -6,7 +6,7 @@ const enviroment = process.env.NODE_ENV || "development";
 const envConfig = {
     "development": {
         "PORT": process.env.PORT || 5000,
-        "MONGO_URL": process.env.MONGO_URL || "mongodb://44.203.85.39:27017/zalo",
+        "MONGO_URL": process.env.MONGO_URL || "mongodb://mongodb:27017/zalo",
         "JWT_SECRET": process.env.JWT_SECRET
     },
     "production": {
