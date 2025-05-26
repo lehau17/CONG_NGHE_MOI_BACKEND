@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import FriendRequest from "../models/friendRequest.model.js";
 import User from "../models/user.model.js";
 import userRepository from "../repo/user.repo.js";
 import { BadRequestError } from "../utils/errorHandler.js";
@@ -11,13 +12,29 @@ class UserService {
 
 
     async findUserByPhone(phoneNumber, userId) {
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+
         const foundUser = await User.findOne({
-            _id: { $ne: new mongoose.Types.ObjectId(userId) },
+            _id: { $ne: userObjectId },
             phoneNumber,
             allow_search_by_phone: true
-        }).select("-password"); // Loại bỏ field password khi trả về
+        }).select("-password");
 
-        return foundUser;
+        if (!foundUser) return null;
+
+        const existingRequest = await FriendRequest.findOne({
+            $or: [
+                { from: userObjectId, to: foundUser._id },
+                { from: foundUser._id, to: userObjectId }
+            ],
+            status: { $in: ["pending", "accepted"] }
+        });
+
+        return {
+            ...foundUser.toObject(),
+            relationship: existingRequest?.status || null, // 'pending', 'accepted', hoặc null nếu chưa có
+            isSender: existingRequest?.from?.toString() === userId // true nếu mình là người gửi lời mời
+        };
     }
 
 
