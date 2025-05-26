@@ -352,7 +352,6 @@ export const getGroupMembersWithRoles = async (groupId, requesterId) => {
     }));
 };
 
-import FriendRequest from "./models/friendRequest.model.js"; // đường dẫn đúng với project bạn
 
 export const searchGroupsByName = async (userId, keyword) => {
     if (!keyword || !keyword.trim()) return [];
