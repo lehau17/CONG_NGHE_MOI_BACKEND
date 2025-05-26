@@ -245,6 +245,9 @@ export const markConversationDeletedForUser = async (conversationId, userId) => 
         throw new Error("Không tìm thấy cuộc trò chuyện hoặc không phải là thành viên.");
     }
 
+    // socket
+    appSocket.emitToUser(userId, "hide-conv", conversation._id)
+
     return { conversationId, deletedAt: now };
 };
 
