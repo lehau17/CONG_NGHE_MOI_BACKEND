@@ -352,7 +352,6 @@ export const getGroupMembersWithRoles = async (groupId, requesterId) => {
     }));
 };
 
-
 export const searchGroupsByName = async (userId, keyword) => {
     if (!keyword || !keyword.trim()) return [];
 
@@ -361,63 +360,62 @@ export const searchGroupsByName = async (userId, keyword) => {
     const keywordPattern = keywordWords.map(word => `(?=.*${word})`).join("") + ".*";
     const nameRegex = new RegExp(keywordPattern, "i");
 
-    // 1. Tìm tất cả nhóm mà user tham gia
-    const groups = await GroupConversation.find({
-        "participants.user": userObjectId
-    })
-        .populate("participants.user", "fullName avatar _id")
-        .populate({
-            path: "lastMessage",
-            populate: {
-                path: "sender",
-                select: "fullName avatar _id"
-            }
+    // 1. Chạy đồng thời 3 truy vấn:
+    const [groups, friendRequests, matchedFriends] = await Promise.all([
+        GroupConversation.find({
+            "participants.user": userObjectId
         })
-        .lean();
+            .populate("participants.user", "fullName avatar _id")
+            .populate({
+                path: "lastMessage",
+                populate: {
+                    path: "sender",
+                    select: "fullName avatar _id"
+                }
+            })
+            .lean(),
 
-    // 2. Lọc nhóm theo tên nhóm hoặc tên thành viên khác mình
+        FriendRequest.find({
+            status: "accepted",
+            $or: [{ from: userObjectId }, { to: userObjectId }]
+        }).lean(),
+
+        // matchedFriends sẽ lọc sau khi có friendIds
+        Promise.resolve([]) // placeholder, sẽ chạy sau
+    ]);
+
+    // 2. Lọc nhóm theo tên hoặc tên thành viên
     const filteredGroups = groups.filter(group => {
         const groupNameMatch = nameRegex.test(group.name || "");
-
-        const memberMatch = group.participants.some(p => {
-            const isSelf = p.user._id.toString() === userId.toString();
-            return !isSelf && nameRegex.test(p.user.fullName || "");
-        });
-
+        const memberMatch = group.participants.some(p => (
+            p.user._id.toString() !== userId.toString() &&
+            nameRegex.test(p.user.fullName || "")
+        ));
         return groupNameMatch || memberMatch;
     });
 
-    // 3. Tìm tất cả lời mời đã chấp nhận (bạn bè)
-    const friendRequests = await FriendRequest.find({
-        status: "accepted",
-        $or: [
-            { from: userObjectId },
-            { to: userObjectId }
-        ]
-    }).lean();
+    // 3. Lấy danh sách friendIds
+    const friendIds = friendRequests.map(fr =>
+        fr.from.toString() === userId.toString() ? fr.to : fr.from
+    );
 
-    const friendIds = friendRequests.map(fr => {
-        return fr.from.toString() === userId.toString() ? fr.to : fr.from;
-    });
-
-    // 4. Tìm bạn bè có tên khớp
-    const matchedFriends = await User.find({
+    // 4. Truy vấn bạn bè có tên khớp (chạy sau khi có friendIds)
+    const friends = await User.find({
         _id: { $in: friendIds },
-        fullName: nameRegex // không cần $options nếu đã dùng RegExp
+        fullName: nameRegex
     }).select("_id fullName avatar").lean();
 
-    // 5. Kết quả bạn bè
-    const friendResults = matchedFriends.map(friend => ({
+    // 5. Map bạn bè
+    const friendResults = friends.map(friend => ({
         _id: friend._id,
         type: "friend",
         fullName: friend.fullName,
         avatar: friend.avatar
     }));
 
-    // 6. Kết quả nhóm
+    // 6. Map nhóm
     const groupResults = filteredGroups.map(group => {
         const sender = group.lastMessage?.sender;
-
         if (sender) {
             const isSelf = sender._id.toString() === userId.toString();
             sender.label = isSelf
@@ -439,9 +437,9 @@ export const searchGroupsByName = async (userId, keyword) => {
         };
     });
 
-    // 7. Trả về kết quả gộp
     return [...groupResults, ...friendResults];
 };
+
 
 
 
