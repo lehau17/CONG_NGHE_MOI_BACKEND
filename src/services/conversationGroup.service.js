@@ -17,6 +17,8 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
     if (!requester) throw new ForbiddenError("Bạn không phải là thành viên của nhóm");
 
     const newMembers = [];
+    const invitedUsers = [];
+    const errors = []; // ✅ lưu lỗi chi tiết
 
     for (const userId of userIds) {
         const alreadyInGroup = group.participants.some(p => p.user.toString() === userId);
@@ -26,7 +28,15 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
             status: "pending"
         });
 
-        if (alreadyInGroup || alreadyInvited) continue;
+        if (alreadyInGroup) {
+            errors.push({ userId, reason: "Đã là thành viên trong nhóm" });
+            continue;
+        }
+
+        if (alreadyInvited) {
+            errors.push({ userId, reason: "Đã được mời và đang chờ xác nhận" });
+            continue;
+        }
 
         // Nếu KHÔNG cần duyệt hoặc requester là owner → thêm luôn
         if (!group.requireApproval || requester.role === "owner") {
@@ -45,13 +55,14 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
                 invitedBy: requesterId,
                 status: "pending"
             });
+
+            invitedUsers.push(userId);
         }
     }
 
     if (newMembers.length > 0) {
         await group.save();
 
-        // Emit socket tới tất cả thành viên cũ
         group.participants.forEach(p => {
             appSocket.emitToUser(p.user.toString(), "group:member-added-group", {
                 groupId,
@@ -62,11 +73,13 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
     }
 
     return {
-        message: `Đã thêm ${newMembers.length} thành viên vào nhóm. Còn lại sẽ cần duyệt nếu có.`,
-        added: newMembers.length,
-        invited: userIds.length - newMembers.length
+        message: `Kết quả thêm thành viên vào nhóm`,
+        added: newMembers,
+        invited: invitedUsers,
+        errors // ✅ gửi chi tiết lỗi về cho FE xử lý
     };
 };
+
 
 
 
