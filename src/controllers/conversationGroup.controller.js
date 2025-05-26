@@ -16,6 +16,11 @@ export const addMembers = async (req, res) => {
     new SuccessResponse(result, "Thêm nhiều thành viên thành công").response(res);
 };
 
+
+export const getGroupForMe = async (req, res, next) => {
+    new SuccessResponse(await groupService.getGroupsByUserId(req.user.user_id), "Danh sách nhóm").response(res);
+}
+
 export const createGroup = async (req, res) => {
     const group = await groupService.createGroup(req.user.user_id, req.body);
     new CreatedResponse(group, "Tạo nhóm thành công").response(res);

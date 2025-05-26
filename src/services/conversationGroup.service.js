@@ -506,3 +506,20 @@ export const toggleRequireApprovalService = async (groupId, userId) => {
     };
 };
 
+
+
+
+export const getGroupsByUserId = async (userId) => {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        throw new BadRequestError("Invalid user ID");
+    }
+
+    const groups = await GroupConversation.find({
+        "participants.user": new mongoose.Types.ObjectId(userId)
+    })
+        .populate("participants.user", "-password") // populate thông tin user, bỏ password nếu có
+        .populate("createdBy", "-password")
+        .populate("lastMessage"); // nếu muốn populate luôn lastMessage
+
+    return groups;
+};
