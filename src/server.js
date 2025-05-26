@@ -1,4 +1,5 @@
 import pkg from 'agora-access-token';
+import compression from "compression";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -7,9 +8,9 @@ import authRoutes from "./routes/auth.routes.js";
 import contactRouter from "./routes/contact.routes.js";
 import conversationRouter from "./routes/conversation.route.js";
 import conversationGroupRouter from "./routes/conversationGroup.route.js";
-import pendingGroupInvite from "./routes/pendingGroupInvite.route.js"
 import friendRequestRoutes from "./routes/friendRequest.route.js";
 import messageRouter from './routes/message.routes.js';
+import pendingGroupInvite from "./routes/pendingGroupInvite.route.js";
 import uploadRouter from "./routes/upload.route.js";
 import userRouter from "./routes/user.routes.js";
 const { RtcRole, RtcTokenBuilder } = pkg;
@@ -21,7 +22,7 @@ const app = () => {
 
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
+    app.use(compression());
     app.use(
         cors({
             origin: "*"

@@ -19,5 +19,6 @@ router.put("/:groupId/update-info", wrapperRequestHandle(groupController.updateG
 router.get("/:groupId/friends-not-in-group", wrapperRequestHandle(groupController.getFriendsNotInGroup));
 router.post("/:groupId/toggle-require-approval", wrapperRequestHandle(groupController.toggleRequireApproval));
 router.post("/:groupId/add-members", wrapperRequestHandle(groupController.addMembers));
+router.get("/me", wrapperRequestHandle(groupController.getGroupForMe));
 
 export default router;
