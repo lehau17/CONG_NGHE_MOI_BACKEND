@@ -92,7 +92,7 @@ export const createGroup = async (creatorId, { name, avatar, members = [] }) => 
 
     // Lấy avatar của creator (người tạo nhóm)
     const creator = await User.findById(creatorId);
-    if (!creator || !creator.avatar) {
+    if (!creator) {
         throw new BadRequestError("Người tạo nhóm không có avatar.");
     }
 
