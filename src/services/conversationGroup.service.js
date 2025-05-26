@@ -17,6 +17,8 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
     if (!requester) throw new ForbiddenError("Bạn không phải là thành viên của nhóm");
 
     const newMembers = [];
+    const invitedUsers = [];
+    const errors = []; // ✅ lưu lỗi chi tiết
 
     for (const userId of userIds) {
         const alreadyInGroup = group.participants.some(p => p.user.toString() === userId);
@@ -26,7 +28,15 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
             status: "pending"
         });
 
-        if (alreadyInGroup || alreadyInvited) continue;
+        if (alreadyInGroup) {
+            errors.push({ userId, reason: "Đã là thành viên trong nhóm" });
+            continue;
+        }
+
+        if (alreadyInvited) {
+            errors.push({ userId, reason: "Đã được mời và đang chờ xác nhận" });
+            continue;
+        }
 
         // Nếu KHÔNG cần duyệt hoặc requester là owner → thêm luôn
         if (!group.requireApproval || requester.role === "owner") {
@@ -45,13 +55,14 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
                 invitedBy: requesterId,
                 status: "pending"
             });
+
+            invitedUsers.push(userId);
         }
     }
 
     if (newMembers.length > 0) {
         await group.save();
 
-        // Emit socket tới tất cả thành viên cũ
         group.participants.forEach(p => {
             appSocket.emitToUser(p.user.toString(), "group:member-added-group", {
                 groupId,
@@ -62,11 +73,13 @@ export const addMembers = async (requesterId, groupId, userIds = []) => {
     }
 
     return {
-        message: `Đã thêm ${newMembers.length} thành viên vào nhóm. Còn lại sẽ cần duyệt nếu có.`,
-        added: newMembers.length,
-        invited: userIds.length - newMembers.length
+        message: `Kết quả thêm thành viên vào nhóm`,
+        added: newMembers,
+        invited: invitedUsers,
+        errors // ✅ gửi chi tiết lỗi về cho FE xử lý
     };
 };
+
 
 
 
@@ -340,10 +353,20 @@ export const getGroupMembersWithRoles = async (groupId, requesterId) => {
 };
 
 export const searchGroupsByName = async (userId, keyword) => {
+    // Nếu không có từ khóa hợp lệ thì trả về mảng rỗng
+    if (!keyword || !keyword.trim()) return [];
+
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
+    // Tách từ khóa thành các từ và tạo regex pattern kiểu: (?=.*word1)(?=.*word2)...
+    const keywordRegex = keyword
+        .trim()
+        .split(/\s+/)
+        .map(word => `(?=.*${word})`)
+        .join("") + ".*";
+
     const groups = await GroupConversation.find({
-        name: { $regex: keyword, $options: "i" },
+        name: { $regex: keywordRegex, $options: "i" },
         "participants.user": userObjectId
     })
         .populate("participants.user", "fullName avatar _id")
@@ -351,20 +374,23 @@ export const searchGroupsByName = async (userId, keyword) => {
             path: "lastMessage",
             populate: {
                 path: "sender",
-                select: "fullName avatar _id phoneNumber"
+                select: "fullName avatar _id"
             }
         })
         .lean();
 
     return groups.map(group => {
         const sender = group.lastMessage?.sender;
+
         if (sender) {
             const isSelf = sender._id.toString() === userId.toString();
-            sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
+            sender.label = isSelf
+                ? "Bạn"
+                : sender.fullName?.trim().split(" ").pop() || "Người lạ";
         }
 
         return {
-            _id: group._id, // chính là conversationId
+            _id: group._id,
             name: group.name,
             avatar: group.avatar,
             participants: group.participants.map(p => ({
@@ -372,10 +398,12 @@ export const searchGroupsByName = async (userId, keyword) => {
                 deletedAt: p.deletedAt,
                 ...p.user
             })),
-            lastMessage: group.lastMessage
+            lastMessage: group.lastMessage || null // fallback an toàn
         };
     });
 };
+
+
 
 export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
     const group = await GroupConversation.findById(groupId);
