@@ -357,12 +357,11 @@ export const searchGroupsByName = async (userId, keyword) => {
     if (!keyword || !keyword.trim()) return [];
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
-
     const keywordWords = keyword.trim().split(/\s+/);
-    const keywordRegex = keywordWords.map(word => `(?=.*${word})`).join("") + ".*";
-    const nameRegex = new RegExp(keywordRegex, "i");
+    const keywordPattern = keywordWords.map(word => `(?=.*${word})`).join("") + ".*";
+    const nameRegex = new RegExp(keywordPattern, "i");
 
-    // 1. Tìm tất cả nhóm user tham gia
+    // 1. Tìm tất cả nhóm mà user tham gia
     const groups = await GroupConversation.find({
         "participants.user": userObjectId
     })
@@ -376,17 +375,19 @@ export const searchGroupsByName = async (userId, keyword) => {
         })
         .lean();
 
-    // 2. Lọc nhóm khớp tên nhóm hoặc thành viên (trừ bản thân)
+    // 2. Lọc nhóm theo tên nhóm hoặc tên thành viên khác mình
     const filteredGroups = groups.filter(group => {
-        const nameMatch = nameRegex.test(group.name || "");
+        const groupNameMatch = nameRegex.test(group.name || "");
+
         const memberMatch = group.participants.some(p => {
             const isSelf = p.user._id.toString() === userId.toString();
             return !isSelf && nameRegex.test(p.user.fullName || "");
         });
-        return nameMatch || memberMatch;
+
+        return groupNameMatch || memberMatch;
     });
 
-    // 3. Tìm bạn bè có status accepted
+    // 3. Tìm tất cả lời mời đã chấp nhận (bạn bè)
     const friendRequests = await FriendRequest.find({
         status: "accepted",
         $or: [
@@ -396,25 +397,24 @@ export const searchGroupsByName = async (userId, keyword) => {
     }).lean();
 
     const friendIds = friendRequests.map(fr => {
-        const isSender = fr.from.toString() === userId.toString();
-        return isSender ? fr.to : fr.from;
+        return fr.from.toString() === userId.toString() ? fr.to : fr.from;
     });
 
-    // 4. Lấy thông tin bạn bè
-    const friends = await User.find({
+    // 4. Tìm bạn bè có tên khớp
+    const matchedFriends = await User.find({
         _id: { $in: friendIds },
-        fullName: { $regex: nameRegex, $options: "i" }
+        fullName: nameRegex // không cần $options nếu đã dùng RegExp
     }).select("_id fullName avatar").lean();
 
-    // 5. Gán nhãn "friend" để phân biệt loại kết quả
-    const friendResults = friends.map(friend => ({
+    // 5. Kết quả bạn bè
+    const friendResults = matchedFriends.map(friend => ({
         _id: friend._id,
         type: "friend",
         fullName: friend.fullName,
         avatar: friend.avatar
     }));
 
-    // 6. Gán nhãn type: "group" cho nhóm
+    // 6. Kết quả nhóm
     const groupResults = filteredGroups.map(group => {
         const sender = group.lastMessage?.sender;
 
@@ -439,6 +439,7 @@ export const searchGroupsByName = async (userId, keyword) => {
         };
     });
 
+    // 7. Trả về kết quả gộp
     return [...groupResults, ...friendResults];
 };
 
