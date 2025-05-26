@@ -52,7 +52,26 @@ export const getMyConversations = async (userId) => {
             .lean(),
     ]);
 
-    // Hàm format chung
+    // Bộ lọc: loại bỏ hội thoại bị xóa mà không có tin nhắn mới sau đó
+    const filterDeleted = (list) =>
+        list.filter((conv) => {
+            const participant = conv.participants.find((p) => p.user._id.toString() === userId.toString());
+            if (!participant) return false;
+
+            const deletedAt = participant.deletedAt;
+            const lastMessageTime = conv.lastMessage?.createdAt ? new Date(conv.lastMessage.createdAt) : null;
+
+            // Nếu chưa xóa thì giữ lại
+            if (!deletedAt) return true;
+
+            // Nếu đã xóa nhưng có tin nhắn mới sau khi xóa thì giữ lại
+            return lastMessageTime && lastMessageTime > new Date(deletedAt);
+        });
+
+    const filteredIndividuals = filterDeleted(individualConversations);
+    const filteredGroups = filterDeleted(groupConversations);
+
+    // Format hiển thị
     const formatConversations = (list, type) =>
         list.map((conv) => {
             const sender = conv.lastMessage?.sender;
@@ -73,8 +92,8 @@ export const getMyConversations = async (userId) => {
             };
         });
 
-    const formattedIndividuals = formatConversations(individualConversations, "single");
-    const formattedGroups = formatConversations(groupConversations, "group");
+    const formattedIndividuals = formatConversations(filteredIndividuals, "single");
+    const formattedGroups = formatConversations(filteredGroups, "group");
 
     return [...formattedIndividuals, ...formattedGroups].sort((a, b) => {
         const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt) : new Date(0);
@@ -82,6 +101,7 @@ export const getMyConversations = async (userId) => {
         return bTime - aTime;
     });
 };
+
 
 
 
