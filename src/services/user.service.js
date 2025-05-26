@@ -32,6 +32,7 @@ class UserService {
 
         return {
             ...foundUser.toObject(),
+            rs_id: existingRequest._id,
             relationship: existingRequest?.status || null, // 'pending', 'accepted', hoặc null nếu chưa có
             isSender: existingRequest?.from?.toString() === userId // true nếu mình là người gửi lời mời
         };
