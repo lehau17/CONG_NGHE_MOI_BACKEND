@@ -55,16 +55,15 @@ export const getMyConversations = async (userId) => {
     // Bộ lọc: loại bỏ hội thoại bị xóa mà không có tin nhắn mới sau đó
     const filterDeleted = (list) =>
         list.filter((conv) => {
-            const participant = conv.participants.find((p) => p.user._id.toString() === userId.toString());
+            const participant = conv.participants.find(
+                (p) => p.user && p.user._id.toString() === userId.toString()
+            );
             if (!participant) return false;
 
             const deletedAt = participant.deletedAt;
             const lastMessageTime = conv.lastMessage?.createdAt ? new Date(conv.lastMessage.createdAt) : null;
 
-            // Nếu chưa xóa thì giữ lại
             if (!deletedAt) return true;
-
-            // Nếu đã xóa nhưng có tin nhắn mới sau khi xóa thì giữ lại
             return lastMessageTime && lastMessageTime > new Date(deletedAt);
         });
 
@@ -83,12 +82,14 @@ export const getMyConversations = async (userId) => {
             return {
                 ...conv,
                 type,
-                participants: conv.participants.map((pa) => ({
-                    deletedAt: pa.deletedAt,
-                    ...pa.user,
-                    role: pa.role,
-                    joinedAt: pa.joinedAt,
-                })),
+                participants: conv.participants
+                    .filter((pa) => pa.user) // Lọc những phần tử có user null
+                    .map((pa) => ({
+                        deletedAt: pa.deletedAt,
+                        ...pa.user,
+                        role: pa.role,
+                        joinedAt: pa.joinedAt,
+                    })),
             };
         });
 
@@ -101,6 +102,7 @@ export const getMyConversations = async (userId) => {
         return bTime - aTime;
     });
 };
+
 
 
 
