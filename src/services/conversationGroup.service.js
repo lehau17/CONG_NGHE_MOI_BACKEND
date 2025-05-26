@@ -353,10 +353,20 @@ export const getGroupMembersWithRoles = async (groupId, requesterId) => {
 };
 
 export const searchGroupsByName = async (userId, keyword) => {
+    // Nếu không có từ khóa hợp lệ thì trả về mảng rỗng
+    if (!keyword || !keyword.trim()) return [];
+
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
+    // Tách từ khóa thành các từ và tạo regex pattern kiểu: (?=.*word1)(?=.*word2)...
+    const keywordRegex = keyword
+        .trim()
+        .split(/\s+/)
+        .map(word => `(?=.*${word})`)
+        .join("") + ".*";
+
     const groups = await GroupConversation.find({
-        name: { $regex: keyword, $options: "i" },
+        name: { $regex: keywordRegex, $options: "i" },
         "participants.user": userObjectId
     })
         .populate("participants.user", "fullName avatar _id")
@@ -364,20 +374,23 @@ export const searchGroupsByName = async (userId, keyword) => {
             path: "lastMessage",
             populate: {
                 path: "sender",
-                select: "fullName avatar _id phoneNumber"
+                select: "fullName avatar _id"
             }
         })
         .lean();
 
     return groups.map(group => {
         const sender = group.lastMessage?.sender;
+
         if (sender) {
             const isSelf = sender._id.toString() === userId.toString();
-            sender.label = isSelf ? "Bạn" : sender.fullName?.trim().split(" ").pop() || "Người lạ";
+            sender.label = isSelf
+                ? "Bạn"
+                : sender.fullName?.trim().split(" ").pop() || "Người lạ";
         }
 
         return {
-            _id: group._id, // chính là conversationId
+            _id: group._id,
             name: group.name,
             avatar: group.avatar,
             participants: group.participants.map(p => ({
@@ -385,10 +398,12 @@ export const searchGroupsByName = async (userId, keyword) => {
                 deletedAt: p.deletedAt,
                 ...p.user
             })),
-            lastMessage: group.lastMessage
+            lastMessage: group.lastMessage || null // fallback an toàn
         };
     });
 };
+
+
 
 export const updateGroupInfo = async (requesterId, groupId, name, avatar) => {
     const group = await GroupConversation.findById(groupId);
