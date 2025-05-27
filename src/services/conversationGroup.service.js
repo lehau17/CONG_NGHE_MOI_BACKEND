@@ -274,6 +274,11 @@ export const changeMemberRole = async (requesterId, groupId, userId, newRole) =>
 
     // Đánh dấu mảng participants là đã bị sửa
     group.markModified('participants');
+    appSocket.emitToRoom("group:memberRoleChanged", {
+        groupId,
+        userId,
+        newRole
+    })
     group.participants.forEach(p => {
         appSocket.emitToUser(p.user.toString(), 'group:memberRoleChanged', {
             groupId,

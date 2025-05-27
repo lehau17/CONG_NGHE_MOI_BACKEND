@@ -29,12 +29,16 @@ class UserService {
             ],
             status: { $in: ["pending", "accepted"] }
         });
+        let value = {}
+        if (existingRequest) {
+            value.rs_id = existingRequest._id
+            value.relationship = existingRequest?.status || null
+            value.isSender = existingRequest?.from?.toString() === userId
+        }
 
         return {
             ...foundUser.toObject(),
-            rs_id: existingRequest._id,
-            relationship: existingRequest?.status || null, // 'pending', 'accepted', hoặc null nếu chưa có
-            isSender: existingRequest?.from?.toString() === userId // true nếu mình là người gửi lời mời
+            ...existingRequest
         };
     }
 
